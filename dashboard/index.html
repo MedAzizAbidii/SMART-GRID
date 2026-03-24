@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Grid Live Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #151b23;
+      --ok: #2ecc71;
+      --warn: #f1c40f;
+      --danger: #ff5a5f;
+      --text: #e6edf3;
+      --subtle: #8b949e;
+      --accent: #33b3ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: radial-gradient(circle at top right, #1d2838, var(--bg) 40%);
+      color: var(--text);
+    }
+
+    .header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #2d333b;
+      background: rgba(13, 17, 23, 0.8);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+      z-index: 2;
+    }
+
+    .title { margin: 0; font-size: 22px; letter-spacing: 0.5px; }
+    .subtitle { color: var(--subtle); font-size: 13px; margin-top: 6px; }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #0b1118;
+      background: var(--accent);
+    }
+
+    button.danger {
+      color: #fff;
+      background: var(--danger);
+    }
+
+    .container {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid #2d333b;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .stat-title { color: var(--subtle); font-size: 12px; }
+    .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .bus {
+      background: var(--panel);
+      border: 1px solid #2d333b;
+      border-left: 5px solid var(--ok);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .bus.attack { border-left-color: var(--danger); }
+    .bus h3 { margin: 0 0 6px; }
+
+    .metric { font-size: 13px; color: var(--subtle); margin-top: 6px; }
+    .value { color: var(--text); font-weight: 700; }
+
+    .alerts {
+      max-height: 240px;
+      overflow: auto;
+    }
+
+    .alert {
+      background: #2b1b1e;
+      border: 1px solid #5e2a31;
+      border-left: 4px solid var(--danger);
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .muted { color: var(--subtle); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1 class="title">Smart Grid Live Monitor</h1>
+    <div class="subtitle" id="last-update">Waiting for updates...</div>
+    <div class="toolbar">
+      <button onclick="injectAttack('fdia')">Inject FDIA</button>
+      <button class="danger" onclick="injectAttack('dos')">Inject DoS</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="stats">
+      <div class="card">
+        <div class="stat-title">Buses online</div>
+        <div class="stat-value" id="stat-buses">0</div>
+      </div>
+      <div class="card">
+        <div class="stat-title">Active attacks</div>
+        <div class="stat-value" id="stat-attacks">0</div>
+      </div>
+      <div class="card">
+        <div class="stat-title">Average voltage</div>
+        <div class="stat-value" id="stat-voltage">0.000 pu</div>
+      </div>
+      <div class="card">
+        <div class="stat-title">Total consumption</div>
+        <div class="stat-value" id="stat-consumption">0.00 kW</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Bus Telemetry</h2>
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <section class="card alerts">
+      <h2>Recent Alerts</h2>
+      <div id="alerts" class="muted">No alerts yet</div>
+    </section>
+  </main>
+
+  <script>
+    const API = '';
+
+    function number(value, d = 3) {
+      return Number(value || 0).toFixed(d);
+    }
+
+    async function fetchGrid() {
+      const res = await fetch(`${API}/api/grid/all`);
+      if (!res.ok) throw new Error('Failed to fetch grid data');
+      return res.json();
+    }
+
+    async function fetchAlerts() {
+      const res = await fetch(`${API}/api/alerts?limit=20`);
+      if (!res.ok) throw new Error('Failed to fetch alerts');
+      return res.json();
+    }
+
+    async function injectAttack(type) {
+      const bus = Math.floor(Math.random() * 14) + 1;
+      const url = `${API}/api/simulate/attack?bus_id=${bus}&attack_type=${type}&magnitude=0.3&duration=25`;
+      await fetch(url, { method: 'POST' });
+      await refresh();
+    }
+
+    function renderGrid(buses) {
+      const grid = document.getElementById('grid');
+      const sorted = [...buses].sort((a, b) => a.bus_id - b.bus_id);
+
+      grid.innerHTML = sorted.map(bus => {
+        const attack = bus.attack_type !== 'normal';
+        return `
+          <div class="bus ${attack ? 'attack' : ''}">
+            <h3>Bus ${bus.bus_id}</h3>
+            <div class="metric">Voltage: <span class="value">${number(bus.voltage, 4)} pu</span></div>
+            <div class="metric">Frequency: <span class="value">${number(bus.frequency, 3)} Hz</span></div>
+            <div class="metric">Consumption: <span class="value">${number(bus.consumption, 3)} kW</span></div>
+            <div class="metric">Current: <span class="value">${number(bus.current, 2)} A</span></div>
+            <div class="metric">Type: <span class="value">${bus.consumer_type}</span></div>
+            <div class="metric">Status: <span class="value">${attack ? bus.attack_type.toUpperCase() : 'NORMAL'}</span></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAlerts(alerts) {
+      const box = document.getElementById('alerts');
+      if (!alerts.length) {
+        box.innerHTML = '<div class="muted">No alerts yet</div>';
+        return;
+      }
+
+      box.innerHTML = alerts.slice().reverse().map(alert => `
+        <div class="alert">
+          <div><strong>${alert.attack_type.toUpperCase()}</strong> on Bus ${alert.bus_id}</div>
+          <div>${alert.description}</div>
+          <div class="muted">confidence=${number(alert.confidence, 2)} time=${new Date(alert.timestamp * 1000).toLocaleTimeString()}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderStats(buses) {
+      const active = buses.filter(b => b.attack_type !== 'normal').length;
+      const avgV = buses.length ? buses.reduce((s, b) => s + Number(b.voltage || 0), 0) / buses.length : 0;
+      const totalC = buses.reduce((s, b) => s + Number(b.consumption || 0), 0);
+
+      document.getElementById('stat-buses').textContent = String(buses.length);
+      document.getElementById('stat-attacks').textContent = String(active);
+      document.getElementById('stat-voltage').textContent = `${number(avgV, 4)} pu`;
+      document.getElementById('stat-consumption').textContent = `${number(totalC, 2)} kW`;
+    }
+
+    async function refresh() {
+      try {
+        const [gridData, alertData] = await Promise.all([fetchGrid(), fetchAlerts()]);
+        renderGrid(gridData.buses || []);
+        renderStats(gridData.buses || []);
+        renderAlerts(alertData.alerts || []);
+        document.getElementById('last-update').textContent =
+          `Last update: ${new Date().toLocaleTimeString()} | source: /api/grid/all`;
+      } catch (err) {
+        document.getElementById('last-update').textContent = `Error: ${err.message}`;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>
