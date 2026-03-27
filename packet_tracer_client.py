@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import socket
 import time
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import requests
 
@@ -16,18 +16,17 @@ class PacketTracerClient:
         self.simulation_api = "http://127.0.0.1:8000"
         self.running = False
 
-    def send_to_packet_tracer(self, data: dict) -> bool:
+    def send_to_packet_tracer(self, data: Dict[str, Any]) -> bool:
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             payload = json.dumps(data).encode("utf-8")
-            sock.sendto(payload, (self.packet_tracer_ip, self.packet_tracer_port))
-            sock.close()
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.sendto(payload, (self.packet_tracer_ip, self.packet_tracer_port))
             return True
         except Exception as exc:
             print(f"send error: {exc}")
             return False
 
-    def fetch_and_forward(self) -> Optional[dict]:
+    def fetch_and_forward(self) -> Optional[Dict[str, Any]]:
         try:
             resp = requests.get(f"{self.simulation_api}/api/grid/all", timeout=5)
             resp.raise_for_status()

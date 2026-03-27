@@ -2,11 +2,7 @@
 Smart grid components: Producers, Smart Meters, Load Profiles
 """
 import numpy as np
-import pandas as pd
-from datetime import datetime
 import random
-from typing import Dict, List, Optional
-import json
 
 class Producer:
     """
@@ -39,7 +35,6 @@ class Producer:
             # Solar follows sun position
             if 6 <= hour <= 18:
                 # Peak at solar noon (12-14)
-                peak_hour = 12 + (hour - 12) * 0.1
                 factor = max(0, np.sin(np.pi * (hour - 6) / 12))
                 # Add cloud effects
                 cloud_factor = max(0.5, 1 - random.random() * 0.3)

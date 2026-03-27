@@ -6,11 +6,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
-import numpy as np
 import json
 from datetime import datetime
-import os
-from tqdm import tqdm
 
 from config import Config
 from simulation.complete_smart_grid_simulator import CompleteSmartGridSimulator
@@ -38,7 +35,7 @@ class DatasetGenerator:
         print("📊 GENERATING CLEAN DATASET")
         print("="*60)
         
-        grid_df, meters_df = self.simulator.generate_clean_dataset(hours)
+        _, meters_df = self.simulator.generate_clean_dataset(hours)
         
         # Save to CSV
         clean_path = os.path.join(self.config.CLEAN_DIR, f"smartgrid_clean_{hours}h.csv")
@@ -63,7 +60,7 @@ class DatasetGenerator:
             self.simulator = CompleteSmartGridSimulator()
             
             # Generate attack
-            grid_df, meters_df = self.simulator.generate_attack_scenario(scenario)
+            _, meters_df = self.simulator.generate_attack_scenario(scenario)
             
             if not meters_df.empty:
                 all_attacks.append(meters_df)

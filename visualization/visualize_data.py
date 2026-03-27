@@ -4,9 +4,7 @@ Visualization of smart grid data
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import numpy as np
 import os
-from datetime import datetime
 
 from config import Config
 
@@ -23,10 +21,10 @@ class DataVisualizer:
         # Set style
         try:
             plt.style.use('seaborn-v0_8-darkgrid')
-        except:
+        except Exception:
             try:
                 plt.style.use('seaborn-darkgrid')
-            except:
+            except Exception:
                 plt.style.use('default')
         sns.set_palette("Set2")
         

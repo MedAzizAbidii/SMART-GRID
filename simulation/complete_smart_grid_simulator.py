@@ -8,12 +8,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from datetime import datetime
 import random
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, Tuple
 
 from config import Config
-from components.smart_grid_components import Producer, SmartMeter, LoadProfileGenerator
+from components.smart_grid_components import Producer, SmartMeter
 from components.grid_connection import PyPowSyBlInterface
 
 

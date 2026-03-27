@@ -5,15 +5,15 @@ Collects hourly readings instead of per-timestep
 """
 import sys
 import os
+import argparse
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from config import Config
 from components.smart_grid_components import Producer, SmartMeter
-from components.grid_connection import PyPowSyBlInterface
 
 
 def generate_fast_dataset(hours=2):
@@ -86,18 +86,8 @@ def generate_fast_dataset(hours=2):
     clean_data = []
     
     for hour in range(hours):
-        # Producer outputs
-        prod_outputs = {}
         for producer in producers:
-            output = producer.get_output_at_hour(float(hour))
-            producer.current_output_mw = output
-            prod_outputs[producer.bus_id] = prod_outputs.get(producer.bus_id, 0) + output
-        
-        # Load by bus
-        loads = {bus: 0.0 for bus in range(1, 15)}
-        for meter in smart_meters:
-            consumption = meter.get_consumption_at_hour(float(hour))
-            loads[meter.bus_id] += consumption / 1000
+            producer.current_output_mw = producer.get_output_at_hour(float(hour))
         
         # Sample meters (take 10% for faster processing, or ~2400 meters)
         sample_size = max(100, len(smart_meters) // 10)
@@ -145,17 +135,8 @@ def generate_fast_dataset(hours=2):
         print(f"\n🔴 {scenario['name']}:")
         
         for hour in range(hours):
-            # Producer outputs
-            prod_outputs = {}
             for producer in producers:
-                output = producer.get_output_at_hour(float(hour))
-                prod_outputs[producer.bus_id] = prod_outputs.get(producer.bus_id, 0) + output
-            
-            # Load by bus
-            loads = {bus: 0.0 for bus in range(1, 15)}
-            for meter in smart_meters:
-                consumption = meter.get_consumption_at_hour(float(hour))
-                loads[meter.bus_id] += consumption / 1000
+                producer.current_output_mw = producer.get_output_at_hour(float(hour))
             
             # Sample meters
             sampled_meters = np.random.choice(smart_meters, size=min(sample_size, len(smart_meters)), replace=False)
@@ -232,4 +213,8 @@ def generate_fast_dataset(hours=2):
 
 
 if __name__ == "__main__":
-    clean_df, attack_df = generate_fast_dataset(hours=2)
+    parser = argparse.ArgumentParser(description="Run fast smart-grid dataset generation")
+    parser.add_argument("--hours", type=int, default=2, help="Number of hours to simulate")
+    args = parser.parse_args()
+
+    clean_df, attack_df = generate_fast_dataset(hours=args.hours)
