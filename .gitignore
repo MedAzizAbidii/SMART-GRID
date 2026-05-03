@@ -16,6 +16,13 @@ venv64/
 # Data and outputs
 data/
 images/
+SMARTGRID_PRIVATE/
+
+# Private smart-meter inputs and logs at repo root
+donnees_smart_meters.csv
+alertes_smart_meters.csv
+logs_smart_meters.txt
+smart_meters_state.json
 
 # IDE
 .vscode/

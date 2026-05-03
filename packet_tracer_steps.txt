@@ -45,3 +45,22 @@ PACKET TRACER QUICK STEPS
 - Keep Packet Tracer for network topology visualization.
 - Use host dashboard for real-time smart-grid telemetry.
 - Correlate PT events with dashboard alerts in thesis report.
+
+10) Per-bus HTTP sender from Packet Tracer PCs
+- Copy packet_tracer_data_sender.py to each PC (PC1..PC14).
+- Set BUS_ID in each copy: PC1=1, PC2=2, ..., PC14=14.
+- Keep API_URL as http://192.168.100.2:8000/api/grid/data if API is on Server.
+- Run on each PC: python packet_tracer_data_sender.py
+- Verify reception from host or browser:
+  GET http://127.0.0.1:8000/api/grid/all
+
+11) Silicon Apocalypse integration (Code Red bridge)
+- Keep API running: python run_demo.py
+- Send Code Red from a zone:
+  python silicon_apocalypse_bridge.py --zone sector_a --motion --severity 0.85
+- Clear zone to SAFE:
+  python silicon_apocalypse_bridge.py --zone sector_a --safe
+- Stream random events:
+  python silicon_apocalypse_bridge.py --loop --interval 5
+- Integration endpoint:
+  POST /api/integrations/silicon-apocalypse/event

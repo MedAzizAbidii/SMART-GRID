@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Meter Workflow Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #071018;
+      --bg2: #0a1522;
+      --panel: #0d1b2b;
+      --panel2: #10263b;
+      --line: #1d3a55;
+      --cyan: #4ee7ff;
+      --cyan2: #9cf6ff;
+      --green: #3df08f;
+      --amber: #ffc85a;
+      --red: #ff5f7f;
+      --ink: #eaf5ff;
+      --muted: #7f95ab;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+      --font-display: 'Orbitron', sans-serif;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-body: 'Rajdhani', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background:
+        radial-gradient(circle at 20% 0%, rgba(78, 231, 255, 0.06), transparent 26%),
+        radial-gradient(circle at 85% 10%, rgba(61, 240, 143, 0.08), transparent 30%),
+        linear-gradient(180deg, #04101a 0%, var(--bg) 34%, #050c13 100%);
+      color: var(--ink);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.018) 2px, rgba(255,255,255,0.018) 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 42px, rgba(78,231,255,0.02) 42px, rgba(78,231,255,0.02) 43px);
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    .shell {
+      width: min(1600px, calc(100vw - 18px));
+      margin: 0 auto;
+      padding: 10px 9px 18px;
+    }
+
+    .header {
+      background: linear-gradient(135deg, rgba(10, 22, 35, 0.96), rgba(17, 33, 50, 0.92));
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--green);
+      box-shadow: var(--shadow);
+      border-radius: 4px 4px 0 0;
+      padding: 18px 22px 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .header::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(61, 240, 143, 0.05), transparent);
+      transform: translateX(-100%);
+      animation: sweep 4.2s linear infinite;
+    }
+
+    @keyframes sweep {
+      to { transform: translateX(200%); }
+    }
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(20px, 2vw, 32px);
+      color: var(--green);
+      letter-spacing: 3px;
+      text-shadow: 0 0 16px rgba(61, 240, 143, 0.35);
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      letter-spacing: 3px;
+      font-size: 11px;
+    }
+
+    .status-cluster {
+      display: grid;
+      gap: 6px;
+      justify-items: end;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--green);
+      letter-spacing: 3px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(61, 240, 143, 0.8);
+    }
+
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(29, 58, 85, 0.65);
+      position: relative;
+      z-index: 1;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .meta-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 4px 8px;
+      border: 1px solid rgba(78, 231, 255, 0.22);
+      border-radius: 999px;
+      color: var(--cyan);
+      background: rgba(78, 231, 255, 0.05);
+      letter-spacing: 1px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.6fr 0.98fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(12, 23, 37, 0.98), rgba(9, 16, 27, 0.98));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(29, 58, 85, 0.65);
+      font-family: var(--font-display);
+      letter-spacing: 3px;
+      font-size: 12px;
+      color: var(--cyan2);
+    }
+
+    .panel-head small {
+      font-family: var(--font-mono);
+      letter-spacing: 1px;
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .panel-body { padding: 14px 16px 16px; }
+
+    .workspace {
+      position: relative;
+      min-height: 900px;
+      background:
+        linear-gradient(180deg, rgba(194, 243, 255, 0.18), rgba(233, 255, 255, 0.08)),
+        linear-gradient(180deg, #dff9ff 0%, #ecfff8 100%);
+      overflow: hidden;
+      border-bottom: 1px solid rgba(19, 45, 63, 0.15);
+    }
+
+    .power-flow {
+      padding: 12px 14px 14px;
+      border-bottom: 1px solid rgba(29, 58, 85, 0.7);
+      background: linear-gradient(180deg, rgba(10, 21, 34, 0.95), rgba(7, 16, 26, 0.95));
+    }
+
+    .power-flow-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--cyan2);
+      text-transform: uppercase;
+    }
+
+    .power-flow-subtitle {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: none;
+    }
+
+    .power-flow-track {
+      display: grid;
+      grid-template-columns: 1fr 38px 1fr 38px 1fr 38px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .flow-box {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(78, 231, 255, 0.22);
+      border-radius: 8px;
+      padding: 10px 12px;
+      min-height: 70px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .flow-box::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 3px;
+      width: var(--flow-width, 0%);
+      background: linear-gradient(90deg, rgba(78, 231, 255, 0.1), rgba(61, 240, 143, 0.95));
+      transition: width 0.4s ease;
+    }
+
+    .flow-box.active {
+      border-color: rgba(61, 240, 143, 0.68);
+      box-shadow: inset 0 0 0 1px rgba(61, 240, 143, 0.12);
+    }
+
+    .flow-label {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--cyan2);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .flow-value {
+      font-family: var(--font-display);
+      font-size: 24px;
+      line-height: 1;
+      color: var(--green);
+      text-shadow: 0 0 10px rgba(61, 240, 143, 0.22);
+    }
+
+    .flow-meta {
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .flow-delta {
+      margin-top: 5px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    .flow-delta.up { color: var(--green); }
+    .flow-delta.down { color: var(--amber); }
+    .flow-delta.flat { color: var(--muted); }
+
+    .flow-arrow {
+      display: grid;
+      justify-items: center;
+      align-items: center;
+      color: var(--green);
+      font-family: var(--font-display);
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
+
+    .flow-arrow span {
+      animation: arrow-breathe 1.5s ease-in-out infinite;
+    }
+
+    .flow-arrow small {
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    @keyframes arrow-breathe {
+      0%, 100% { opacity: 0.55; transform: translateX(0); }
+      50% { opacity: 1; transform: translateX(4px); }
+    }
+
+    .workspace::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+      background-size: 42px 42px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .link-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .link-line {
+      fill: none;
+      stroke: rgba(56, 122, 172, 0.75);
+      stroke-width: 2;
+      stroke-dasharray: 6 8;
+      animation: dash 1.6s linear infinite;
+      marker-end: url(#arrow-head);
+    }
+
+    .link-line.flow { stroke: rgba(61, 240, 143, 0.92); }
+    .link-line.alert { stroke: rgba(255, 95, 127, 0.9); stroke-width: 2.5; }
+
+    @keyframes dash {
+      to { stroke-dashoffset: -28; }
+    }
+
+    .zone {
+      position: absolute;
+      background: rgba(111, 224, 240, 0.34);
+      border: 1px solid rgba(85, 160, 184, 0.55);
+      backdrop-filter: blur(2px);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .zone-head {
+      background: rgba(255,255,255,0.74);
+      color: #0d2333;
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 8px 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(13, 35, 51, 0.18);
+    }
+
+    .zone-body {
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+      gap: 8px;
+      color: #143247;
+    }
+
+    .device {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(94, 122, 145, 0.25);
+      border-radius: 4px;
+      padding: 8px 10px;
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 6px 12px rgba(11, 40, 55, 0.08);
+    }
+
+    .device .name {
+      font-family: var(--font-display);
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #0d2f41;
+    }
+
+    .device .value {
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #0d5f7f;
+    }
+
+    .device.highlight {
+      border-color: rgba(255, 95, 127, 0.55);
+      background: rgba(255, 238, 241, 0.92);
+    }
+
+    .device.highlight .name,
+    .device.highlight .value { color: #8f2035; }
+
+    .home { left: 22px; top: 74px; width: 288px; height: 210px; }
+    .entrance { left: 22px; top: 306px; width: 288px; height: 238px; }
+    .central { left: 308px; top: 170px; width: 304px; height: 248px; }
+    .power { left: 622px; top: 74px; width: 244px; height: 258px; }
+    .watch { left: 622px; top: 360px; width: 244px; height: 214px; }
+    .gateway { left: 318px; top: 78px; width: 180px; height: 68px; }
+
+    .workspace-label {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: rgba(8, 33, 46, 0.75);
+      letter-spacing: 2px;
+      z-index: 2;
+    }
+
+    .schema-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(170px, 1fr));
+      gap: 14px;
+      min-height: 860px;
+      margin: 14px;
+      padding: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(29, 58, 85, 0.75);
+      border-radius: 4px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(78, 231, 255, 0.10), transparent 20%),
+        radial-gradient(circle at 18% 18%, rgba(61, 240, 143, 0.10), transparent 20%),
+        radial-gradient(circle at 82% 82%, rgba(255, 95, 127, 0.10), transparent 22%),
+        linear-gradient(180deg, rgba(9, 15, 31, 0.98), rgba(5, 9, 18, 0.98));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .schema-grid::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 42px 42px;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .schema-grid .link-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .schema-zone,
+    .schema-center {
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+      border: 1px solid rgba(56, 122, 172, 0.55);
+      border-radius: 4px;
+      background: rgba(10, 18, 34, 0.92);
+      box-shadow: 0 12px 22px rgba(6, 14, 24, 0.25);
+      backdrop-filter: blur(4px);
+    }
+
+    .schema-zone {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      padding: 14px;
+      min-height: 190px;
+    }
+
+    .schema-zone::after {
+      content: '';
+      position: absolute;
+      inset: auto 12px 10px 12px;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(0, 255, 136, 0.14), rgba(0, 204, 255, 0.82));
+      opacity: 0.45;
+    }
+
+    .schema-zone.active {
+      border-color: rgba(0, 255, 136, 0.8);
+      box-shadow: 0 0 0 1px rgba(0, 255, 136, 0.16), 0 0 24px rgba(0, 255, 136, 0.10);
+    }
+
+    .schema-zone.alert {
+      border-color: rgba(255, 95, 127, 0.95);
+      box-shadow: 0 0 0 1px rgba(255, 95, 127, 0.18), 0 0 28px rgba(255, 95, 127, 0.14);
+      animation: schema-alert 1.2s ease-in-out infinite;
+    }
+
+    @keyframes schema-alert {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1px); }
+    }
+
+    .schema-zone-title {
+      font-family: var(--font-display);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .schema-zone-value {
+      font-family: var(--font-display);
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--accent-blue);
+      text-shadow: var(--glow-blue);
+    }
+
+    .schema-zone.alert .schema-zone-value {
+      color: var(--accent-red);
+      text-shadow: var(--glow-red);
+    }
+
+    .schema-zone-meta {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    .schema-zone-chip,
+    .schema-center-chip {
+      display: inline-block;
+      align-self: start;
+      padding: 3px 8px;
+      border-radius: 2px;
+      border: 1px solid rgba(0, 204, 255, 0.24);
+      background: rgba(0, 204, 255, 0.08);
+      color: var(--accent-blue);
+      font-family: var(--font-display);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .schema-zone.alert .schema-zone-chip {
+      border-color: rgba(255, 95, 127, 0.34);
+      background: rgba(255, 95, 127, 0.08);
+      color: var(--accent-red);
+    }
+
+    .schema-zone-a { grid-area: 1 / 1 / 2 / 2; }
+    .schema-zone-b { grid-area: 1 / 3 / 2 / 4; }
+    .schema-zone-c { grid-area: 3 / 1 / 4 / 2; }
+    .schema-zone-d { grid-area: 3 / 3 / 4 / 4; }
+
+    .schema-center {
+      grid-area: 2 / 2 / 3 / 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+      padding: 22px 18px;
+      min-height: 220px;
+      border-radius: 28px;
+      background: radial-gradient(circle at 50% 40%, rgba(78, 231, 255, 0.12), rgba(10, 18, 34, 0.96) 68%);
+    }
+
+    .schema-center::before {
+      content: '';
+      position: absolute;
+      inset: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(78, 231, 255, 0.12);
+      pointer-events: none;
+    }
+
+    .schema-center.safe {
+      border-color: rgba(0, 255, 136, 0.65);
+    }
+
+    .schema-center.alert {
+      border-color: rgba(255, 95, 127, 0.88);
+      box-shadow: 0 0 0 1px rgba(255, 95, 127, 0.14), 0 0 30px rgba(255, 95, 127, 0.14);
+    }
+
+    .schema-center-label {
+      font-family: var(--font-display);
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    .schema-center-state {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: var(--accent-green);
+      text-shadow: var(--glow-green);
+    }
+
+    .schema-center.alert .schema-center-state {
+      color: var(--accent-red);
+      text-shadow: var(--glow-red);
+    }
+
+    .schema-center-zone {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .schema-center-meta {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .schema-center-chip {
+      color: var(--accent-green);
+      border-color: rgba(0, 255, 136, 0.28);
+      background: rgba(0, 255, 136, 0.08);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .summary {
+      background: rgba(15, 28, 47, 0.94);
+      border: 1px solid rgba(29, 58, 85, 0.8);
+      border-radius: 4px;
+      padding: 12px;
+      min-height: 92px;
+    }
+
+    .summary .label {
+      font-family: var(--font-display);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .summary .big {
+      margin-top: 10px;
+      font-family: var(--font-display);
+      font-size: 28px;
+      line-height: 1;
+      color: var(--cyan);
+      text-shadow: 0 0 10px rgba(78, 231, 255, 0.28);
+    }
+
+    .summary .sub {
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .bridge-box,
+    .telemetry-box {
+      background: rgba(7, 14, 23, 0.95);
+      border: 1px solid rgba(29, 58, 85, 0.8);
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .sim-line,
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(29, 58, 85, 0.55);
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    .sim-line:last-child,
+    .list-item:last-child { border-bottom: none; }
+    .k, .left { color: var(--muted); }
+    .v, .right { color: var(--ink); }
+    .right.good { color: var(--green); }
+    .right.warn { color: var(--amber); }
+
+    .event-panel {
+      display: grid;
+      gap: 8px;
+      max-height: 330px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .event {
+      padding: 10px;
+      border: 1px solid rgba(29, 58, 85, 0.8);
+      border-radius: 4px;
+      background: rgba(6, 14, 24, 0.62);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #dce8f6;
+    }
+
+    .event .top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .event .kind {
+      color: var(--cyan);
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+
+    .event .desc { color: var(--muted); line-height: 1.4; }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(16, 33, 53, 0.96), rgba(10, 20, 32, 0.96));
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-size: 10px;
+      letter-spacing: 2px;
+      padding: 9px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover { transform: translateY(-1px); border-color: var(--cyan); box-shadow: 0 0 0 1px rgba(78, 231, 255, 0.2); }
+    button.green { color: var(--green); }
+
+    .footer {
+      margin-top: 12px;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      border-top: 1px solid rgba(29, 58, 85, 0.7);
+    }
+
+    @media (max-width: 1300px) {
+      .layout { grid-template-columns: 1fr; }
+      .workspace { min-height: 880px; }
+    }
+
+    @media (max-width: 900px) {
+      .title-row { flex-direction: column; }
+      .status-cluster { justify-items: start; text-align: left; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .home, .entrance, .central, .power, .watch, .gateway { position: relative; left: auto; top: auto; width: auto; height: auto; margin: 12px; }
+      .workspace { min-height: auto; padding-bottom: 12px; }
+      .workspace-label { position: static; margin: 10px 12px 0; }
+      .schema-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        min-height: auto;
+      }
+      .schema-zone-a,
+      .schema-zone-b,
+      .schema-zone-c,
+      .schema-zone-d,
+      .schema-center {
+        grid-area: auto;
+        min-height: 160px;
+      }
+      .schema-center { border-radius: 18px; }
+      .schema-grid .link-layer { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="header">
+      <div class="title-row">
+        <div class="brand">
+          <h1>SMART GRID MONITOR</h1>
+          <p>REAL-TIME SMART METER WORKFLOW + DETECTION DASHBOARD</p>
+        </div>
+        <div class="status-cluster">
+          <div id="clock">00:00:00</div>
+          <div id="datestamp">-- --- ----</div>
+          <div class="status-badge"><span class="status-dot"></span>LIVE</div>
+          <div>API FastAPI</div>
+          <div>Smart Meters</div>
+          <div>Blockchain</div>
+        </div>
+      </div>
+      <div class="meta-bar">
+        <div class="meta-chips">
+          <span class="chip">192.168.25.1 Smart Grid Switch</span>
+          <span class="chip">192.168.25.3 Security</span>
+          <span class="chip">192.168.25.4 Control</span>
+          <span class="chip">192.168.25.5 Monitoring</span>
+        </div>
+        <div>INTERVAL: <span id="interval-label" style="color: var(--green)">3s</span> | REFRESH #<span id="refresh-count" style="color: var(--cyan)">0</span></div>
+      </div>
+    </header>
+
+    <section class="layout">
+      <div class="panel">
+        <div class="panel-head">PACKET TRACER SCHEMA <small>4 zones with live smart meters</small></div>
+        <div class="power-flow">
+          <div class="power-flow-title">
+            <span>Electricity Workflow</span>
+            <span class="power-flow-subtitle">provider -> smart meter -> detector -> results</span>
+          </div>
+          <div class="power-flow-track">
+            <div class="flow-box active">
+              <span class="flow-label">Electricity Provider</span>
+              <div class="flow-value" id="flow-generation">0 kW</div>
+              <div class="flow-meta" id="flow-generation-meta">solar + wind + battery support</div>
+              <div class="flow-delta flat" id="flow-generation-delta">stable</div>
+            </div>
+            <div class="flow-arrow"><span>➜</span><small>feed</small></div>
+            <div class="flow-box active">
+              <span class="flow-label">Smart Meter Bank</span>
+              <div class="flow-value" id="flow-switch">0 kW</div>
+              <div class="flow-meta">collects readings from meters</div>
+              <div class="flow-delta flat" id="flow-switch-delta">stable</div>
+            </div>
+            <div class="flow-arrow"><span>➜</span><small>route</small></div>
+            <div class="flow-box">
+              <span class="flow-label">Detector Engine</span>
+              <div class="flow-value" id="flow-central">0 kW</div>
+              <div class="flow-meta">checks thresholds and flags anomalies</div>
+              <div class="flow-delta flat" id="flow-central-delta">stable</div>
+            </div>
+            <div class="flow-arrow"><span>➜</span><small>distribute</small></div>
+            <div class="flow-box">
+              <span class="flow-label">Detection Results</span>
+              <div class="flow-value" id="flow-devices">0 kW</div>
+              <div class="flow-meta">alerts, latest meter, and workflow results</div>
+              <div class="flow-delta flat" id="flow-devices-delta">stable</div>
+            </div>
+          </div>
+        </div>
+        <div class="workspace" id="workspace">
+          <svg class="link-layer" id="link-layer" viewBox="0 0 1000 640" preserveAspectRatio="none"></svg>
+
+          <div class="schema-grid">
+            <div class="schema-zone schema-zone-a" id="schema-zone-a" data-zone="zone-a">
+              <div class="schema-zone-title">Zone A</div>
+              <div class="schema-zone-value" id="schema-zone-a-load">0 kW</div>
+              <div class="schema-zone-meta" id="schema-zone-a-bus">Bus 5 • 0.000 p.u.</div>
+              <div class="schema-zone-meta" id="schema-zone-a-meter">Meter waiting</div>
+              <div class="schema-zone-chip" id="schema-zone-a-state">WATCH</div>
+              <div class="schema-zone-meta" id="schema-zone-a-alerts">Alerts 0</div>
+            </div>
+
+            <div class="schema-zone schema-zone-b" id="schema-zone-b" data-zone="zone-b">
+              <div class="schema-zone-title">Zone B</div>
+              <div class="schema-zone-value" id="schema-zone-b-load">0 kW</div>
+              <div class="schema-zone-meta" id="schema-zone-b-bus">Bus 8 • 0.000 p.u.</div>
+              <div class="schema-zone-meta" id="schema-zone-b-meter">Meter waiting</div>
+              <div class="schema-zone-chip" id="schema-zone-b-state">WATCH</div>
+              <div class="schema-zone-meta" id="schema-zone-b-alerts">Alerts 0</div>
+            </div>
+
+            <div class="schema-center safe" id="schema-center">
+              <div class="schema-center-label">Real-time detector</div>
+              <div class="schema-center-state" id="schema-center-state">NORMAL</div>
+              <div class="schema-center-zone" id="schema-center-zone">Monitoring 4 zones</div>
+              <div class="schema-center-meta" id="schema-center-meta">0 alerts | 0 readings</div>
+              <div class="schema-center-chip">LIVE</div>
+            </div>
+
+            <div class="schema-zone schema-zone-c" id="schema-zone-c" data-zone="zone-c">
+              <div class="schema-zone-title">Zone C</div>
+              <div class="schema-zone-value" id="schema-zone-c-load">0 kW</div>
+              <div class="schema-zone-meta" id="schema-zone-c-bus">Bus 11 • 0.000 p.u.</div>
+              <div class="schema-zone-meta" id="schema-zone-c-meter">Meter waiting</div>
+              <div class="schema-zone-chip" id="schema-zone-c-state">WATCH</div>
+              <div class="schema-zone-meta" id="schema-zone-c-alerts">Alerts 0</div>
+            </div>
+
+            <div class="schema-zone schema-zone-d" id="schema-zone-d" data-zone="zone-d">
+              <div class="schema-zone-title">Zone D</div>
+              <div class="schema-zone-value" id="schema-zone-d-load">0 kW</div>
+              <div class="schema-zone-meta" id="schema-zone-d-bus">Bus 14 • 0.000 p.u.</div>
+              <div class="schema-zone-meta" id="schema-zone-d-meter">Meter waiting</div>
+              <div class="schema-zone-chip" id="schema-zone-d-state">WATCH</div>
+              <div class="schema-zone-meta" id="schema-zone-d-alerts">Alerts 0</div>
+            </div>
+          </div>
+
+          <div class="workspace-label">4-ZONE PACKET TRACER SCHEMA</div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="panel">
+          <div class="panel-head">SIMULATION PANEL <small>Live workflow status</small></div>
+          <div class="panel-body">
+            <div class="summary-grid">
+              <div class="summary">
+                <div class="label">Production</div>
+                <div class="big" id="sum-production">0</div>
+                <div class="sub">kW total</div>
+              </div>
+              <div class="summary">
+                <div class="label">Load</div>
+                <div class="big" id="sum-load">0</div>
+                <div class="sub">kW consumption</div>
+              </div>
+              <div class="summary">
+                <div class="label">Flow</div>
+                <div class="big" id="sum-flow">5</div>
+                <div class="sub">active links</div>
+              </div>
+              <div class="summary">
+                <div class="label">Battery</div>
+                <div class="big" id="sum-battery">0</div>
+                <div class="sub">kWh charge</div>
+              </div>
+            </div>
+
+            <div class="bridge-box">
+              <div class="sim-line"><span class="k">Gateway Security</span><span class="v" id="sim-gw-security">offline</span></div>
+              <div class="sim-line"><span class="k">Gateway Energy</span><span class="v" id="sim-gw-energy">offline</span></div>
+              <div class="sim-line"><span class="k">Central</span><span class="v" id="sim-gw-central">offline</span></div>
+              <div class="sim-line"><span class="k">Security Mode</span><span class="v" id="sim-mode">SAFE</span></div>
+              <div class="sim-line"><span class="k">Zone</span><span class="v" id="sim-zone">perimeter</span></div>
+              <div class="sim-line"><span class="k">Motion</span><span class="v" id="sim-motion">clear</span></div>
+            </div>
+
+            <div class="button-row">
+              <button class="green" onclick="resetSecurity()">RESET VIEW</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">SMART METER DETECTION <small>Latest detector output</small></div>
+          <div class="panel-body">
+            <div class="summary-grid">
+              <div class="summary">
+                <div class="label">Readings</div>
+                <div class="big" id="sm-total-readings">0</div>
+                <div class="sub">rows recorded</div>
+              </div>
+              <div class="summary">
+                <div class="label">Alerts</div>
+                <div class="big" id="sm-total-alerts">0</div>
+                <div class="sub" id="sm-alert-rate">0.00% alert rate</div>
+              </div>
+              <div class="summary">
+                <div class="label">Latest Meter</div>
+                <div class="big" id="sm-meter-id">--</div>
+                <div class="sub" id="sm-meter-zone">waiting for data</div>
+              </div>
+              <div class="summary">
+                <div class="label">Detector</div>
+                <div class="big status-ok" id="sm-status">NORMAL</div>
+                <div class="sub" id="sm-anomalies">no anomalies</div>
+              </div>
+            </div>
+
+            <div class="bridge-box">
+              <div class="sim-line"><span class="k">Consumption</span><span class="v" id="sm-consumption">0.000 kW</span></div>
+              <div class="sim-line"><span class="k">Voltage / Current</span><span class="v" id="sm-voltage-current">0.00 V | 0.00 A</span></div>
+              <div class="sim-line"><span class="k">Last Update</span><span class="v" id="sm-last-update">waiting</span></div>
+              <div class="sim-line"><span class="k">Latest Alert</span><span class="v" id="sm-latest-alert">none</span></div>
+            </div>
+
+            <div class="telemetry-box">
+              <div style="font-family:var(--font-display);font-size:10px;letter-spacing:3px;color:var(--text-secondary);margin-bottom:10px">RECENT SMART-METER ALERTS</div>
+              <div class="event-panel" id="smart-meter-alerts"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">LIVE TELEMETRY <small>Real-time event stream</small></div>
+          <div class="panel-body">
+            <div class="event-panel" id="telemetry-panel"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">BRIDGE STATUS <small>FastAPI sync</small></div>
+          <div class="panel-body">
+            <div class="telemetry-box">
+              <div class="list-item"><span class="left">API</span><span class="right good" id="bridge-api">ONLINE</span></div>
+              <div class="list-item"><span class="left">Smart Meters</span><span class="right good" id="bridge-pt">ONLINE</span></div>
+              <div class="list-item"><span class="left">WebSocket</span><span class="right good" id="bridge-ws">READY</span></div>
+              <div class="list-item"><span class="left">Live Nodes</span><span class="right warn" id="bridge-events">6</span></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel" style="margin-top: 12px;">
+      <div class="panel-head">LIVE CONTROL LOG <small>FastAPI + smart-meter workflow</small></div>
+      <div class="panel-body">
+        <div class="telemetry-box" id="control-log"></div>
+      </div>
+    </section>
+
+    <div class="footer">Real-time smart-meter workflow dashboard | Live data from FastAPI bridge</div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000';
+    const zoneBusMap = {
+      sector_a: 5,
+      sector_b: 8,
+      sector_c: 11,
+      sector_d: 14,
+      perimeter: 6,
+      garage: 4,
+      entrance: 3
+    };
+
+    const sceneMap = {
+      home: [
+        { name: 'Readings', key: 'total_readings', unit: '' },
+        { name: 'Alerts', key: 'total_alerts', unit: '' },
+        { name: 'Alert Rate', key: 'alert_rate', unit: '' },
+        { name: 'Latest Meter', key: 'meter_id', unit: '' },
+        { name: 'Latest Zone', key: 'zone', unit: '' },
+        { name: 'Detector', key: 'status', unit: '' }
+      ],
+      entrance: [
+        { name: 'Consumption', key: 'consumption', unit: '' },
+        { name: 'Voltage', key: 'voltage', unit: '' },
+        { name: 'Current', key: 'current', unit: '' },
+        { name: 'Anomalies', key: 'anomalies', unit: '' },
+        { name: 'Consumer Type', key: 'type', unit: '' },
+        { name: 'Timestamp', key: 'timestamp', unit: '' }
+      ],
+      central: [
+        { name: 'Rule Engine', key: 'engine', unit: '' },
+        { name: 'Thresholds', key: 'thresholds', unit: '' },
+        { name: 'Alert Queue', key: 'queue', unit: '' },
+        { name: 'Log Store', key: 'log', unit: '' }
+      ],
+      power: [
+        { name: 'Gas Plant 1', key: 'gas1', unit: 'MW' },
+        { name: 'Gas Plant 2', key: 'gas2', unit: 'MW' },
+        { name: 'Solar Farm', key: 'solar', unit: 'MW' },
+        { name: 'Wind Farm', key: 'wind', unit: 'MW' },
+        { name: 'Hydro Plant', key: 'hydro', unit: 'MW' }
+      ],
+      watch: [
+        { name: 'Latest Alert', key: 'alert_1', unit: '' },
+        { name: 'Recent Alert', key: 'alert_2', unit: '' },
+        { name: 'Severity', key: 'severity', unit: '' },
+        { name: 'Status', key: 'alert_status', unit: '' }
+      ],
+      gateway: [
+        { name: 'Measure', key: 'measure', unit: '' },
+        { name: 'Detect', key: 'detect', unit: '' },
+        { name: 'Report', key: 'report', unit: '' }
+      ]
+    };
+
+    let refreshCount = 0;
+    let controlLog = [];
+    let lastPowerSnapshot = {
+      generation: null,
+      switchLoad: null,
+      centralLoad: null,
+      deviceLoad: null
+    };
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function num(v, d = 2) { return Number(v || 0).toFixed(d); }
+
+    function updateDelta(elementId, currentValue, previousValue) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+
+      if (previousValue === null || previousValue === undefined) {
+        el.className = 'flow-delta flat';
+        el.textContent = 'stable';
+        return;
+      }
+
+      const delta = currentValue - previousValue;
+      const absDelta = Math.abs(delta);
+      if (absDelta < 0.5) {
+        el.className = 'flow-delta flat';
+        el.textContent = 'stable';
+        return;
+      }
+
+      if (delta > 0) {
+        el.className = 'flow-delta up';
+        el.textContent = `↑ +${num(absDelta, 1)} kW`;
+      } else {
+        el.className = 'flow-delta down';
+        el.textContent = `↓ -${num(absDelta, 1)} kW`;
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      document.getElementById('datestamp').textContent = `${days[now.getDay()]} ${pad2(now.getDate())} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
+    function logLine(message, type = 'good') {
+      const now = new Date();
+      const stamp = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+      controlLog.unshift({ stamp, message, type });
+      controlLog = controlLog.slice(0, 14);
+      document.getElementById('control-log').innerHTML = controlLog.map(item => `
+        <div class="list-item ${item.type}"><span class="left">[${item.stamp}] ${item.message}</span><span class="right good">OK</span></div>
+      `).join('');
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${url} failed`);
+      return res.json();
+    }
+
+    function line(x1, y1, x2, y2, alert = false) {
+      return `<line class="link-line ${alert ? 'alert' : 'flow'}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"></line>`;
+    }
+
+    function renderZone(zoneName, list, status, gridData, meterSnapshot = null) {
+      const target = document.getElementById(`${zoneName}-devices`);
+      if (!target) return;
+
+      const home = status.home_devices || {};
+      const energy = status.energy || {};
+      const batteries = energy.batteries || {};
+      const production = energy.production || {};
+      const security = status.security || {};
+      const meterSummary = meterSnapshot?.summary || {};
+      const meterLatest = meterSnapshot?.latest_reading || {};
+      const meterLatestAlert = meterSnapshot?.latest_alert || {};
+      const recentAlerts = meterSnapshot?.recent_alerts || [];
+      const meterSource = meterSnapshot?.source || {};
+
+      target.innerHTML = list.map(item => {
+        let value = '--';
+        if (meterSnapshot) {
+          if (zoneName === 'home') {
+            if (item.key === 'total_readings') value = String(meterSummary.total_readings || 0);
+            else if (item.key === 'total_alerts') value = String(meterSummary.total_alerts || 0);
+            else if (item.key === 'alert_rate') value = `${num(meterSummary.alert_rate || 0, 2)}%`;
+            else if (item.key === 'meter_id') value = meterLatest.meter_id || '--';
+            else if (item.key === 'zone') value = meterLatest.zone || 'n/a';
+            else if (item.key === 'status') value = meterLatest.statut || 'NORMAL';
+          } else if (zoneName === 'entrance') {
+            if (item.key === 'consumption') value = `${num(meterLatest.consommation_kw || 0, 3)} kW`;
+            else if (item.key === 'voltage') value = `${num(meterLatest.tension_v || 0, 2)} V`;
+            else if (item.key === 'current') value = `${num(meterLatest.courant_a || 0, 3)} A`;
+            else if (item.key === 'anomalies') value = meterLatest.anomalies || 'none';
+            else if (item.key === 'type') value = meterLatest.type || 'n/a';
+            else if (item.key === 'timestamp') value = meterLatest.timestamp || 'waiting';
+          } else if (zoneName === 'central') {
+            if (item.key === 'engine') value = 'RULE-BASED';
+            else if (item.key === 'thresholds') value = 'consumption, voltage, jump';
+            else if (item.key === 'queue') value = String(recentAlerts.length || 0);
+            else if (item.key === 'log') value = meterSource.available ? 'CSV LIVE' : 'WAITING';
+          } else if (zoneName === 'power') {
+            if (item.key === 'gas1') value = `${num((gridData.buses || []).slice(0, 1).reduce((sum, bus) => sum + Number(bus.consumption || 0), 0), 0)} kW`;
+            else if (item.key === 'gas2') value = `${num((gridData.buses || []).slice(1, 2).reduce((sum, bus) => sum + Number(bus.consumption || 0), 0), 0)} kW`;
+            else if (item.key === 'solar') value = `${num(production.solar || 0, 0)} kW`;
+            else if (item.key === 'wind') value = `${num(production.wind || 0, 0)} kW`;
+            else if (item.key === 'hydro') value = `${num((production.total || 0) - (Number(production.solar || 0) + Number(production.wind || 0)), 0)} kW`;
+          } else if (zoneName === 'watch') {
+            const alert = recentAlerts[recentAlerts.length - 1 - list.indexOf(item)];
+            if (item.key === 'alert_1' || item.key === 'alert_2') value = alert ? `${alert.meter_id || 'n/a'} | ${alert.alerte || 'alert'}` : 'none';
+            else if (item.key === 'severity') value = meterLatestAlert.alerte ? `${num(meterLatestAlert.consumption_kw || 0, 3)} kW` : 'none';
+            else if (item.key === 'alert_status') value = meterLatest.statut || 'NORMAL';
+          } else if (zoneName === 'gateway') {
+            if (item.key === 'measure') value = meterSource.available ? 'MEASURED' : 'IDLE';
+            else if (item.key === 'detect') value = meterLatest.statut || 'NORMAL';
+            else if (item.key === 'report') value = meterSummary.total_alerts ? 'ALERTS LOGGED' : 'NO ALERTS';
+          }
+        } else if (zoneName === 'home') {
+          const v = home[item.key];
+          if (item.key === 'camera_active') value = v === false ? 'OFFLINE' : 'ACTIVE';
+          else if (item.key === 'motion_detected') value = security.motion_detected ? 'MOTION' : 'CLEAR';
+          else if (item.key === 'gate_status') value = security.gate_status || 'locked';
+          else if (item.key === 'fence_status') value = security.fence_status || 'normal';
+          else value = `${v ?? '--'}${item.unit}`;
+        } else if (zoneName === 'entrance') {
+          if (item.key === 'camera_active') value = security.camera_active === false ? 'OFFLINE' : 'ACTIVE';
+          else if (item.key === 'garage_camera') value = 'ACTIVE';
+          else if (item.key === 'motion_detected') value = security.motion_detected ? 'MOTION' : 'CLEAR';
+          else if (item.key === 'gate_status') value = security.gate_status || 'locked';
+          else if (item.key === 'garage_detector') value = security.sensor_id || 'sensor';
+          else if (item.key === 'fence_status') value = security.fence_status || 'normal';
+        } else if (zoneName === 'central') {
+          if (item.key === 'central_gateway') value = '192.168.25.4';
+          else if (item.key === 'switch') value = 'ONLINE';
+          else if (item.key === 'server') value = 'FASTAPI';
+          else if (item.key === 'control_laptop') value = 'CONNECTED';
+        } else if (zoneName === 'power') {
+          if (item.key === 'solar') value = `${num(production.solar || 0, 0)} kW`;
+          else if (item.key === 'wind') value = `${num(production.wind || 0, 0)} kW`;
+          else if (item.key === 'battery') value = `${num(batteries.current_charge || 0, 0)} kWh`;
+          else if (item.key === 'monitor') value = 'MONITORING';
+        } else if (zoneName === 'watch') {
+          if (item.key === 'light') value = 'ON';
+          else if (item.key === 'fan') value = `${home.fan_speed ?? 0}%`;
+          else if (item.key === 'sprinkler') value = security.motion_detected ? 'ARMED' : 'READY';
+          else if (item.key === 'tablet') value = 'CONNECTED';
+        } else if (zoneName === 'gateway') {
+          if (item.key === 'gw3') value = '192.168.25.3';
+          else if (item.key === 'gw4') value = '192.168.25.4';
+          else if (item.key === 'gw5') value = '192.168.25.5';
+        }
+
+        const highlighted = item.key === 'motion_detected' || item.key === 'gate_status' || item.key === 'fence_status';
+        return `
+          <div class="device ${highlighted && security.motion_detected ? 'highlight' : ''}">
+            <div class="name">${item.name}</div>
+            <div class="value">${value}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderScene(status, gridData, meterSnapshot = null) {
+      const security = status.security || {};
+      const energy = status.energy || {};
+      const batteries = energy.batteries || {};
+      const production = energy.production || {};
+      const buses = gridData.buses || [];
+      const totalLoad = buses.reduce((sum, bus) => sum + Number(bus.consumption || 0), 0);
+      const totalGeneration = Number(production.total ?? (Number(production.solar || 0) + Number(production.wind || 0)));
+      const switchLoad = Math.max(totalGeneration - totalLoad * 0.18, totalGeneration * 0.82);
+      const centralLoad = Math.max(totalLoad * 0.45, totalGeneration * 0.32);
+      const deviceLoad = Math.max(totalLoad * 0.55, 0);
+
+      renderZone('home', sceneMap.home, status, gridData, meterSnapshot);
+      renderZone('entrance', sceneMap.entrance, status, gridData, meterSnapshot);
+      renderZone('central', sceneMap.central, status, gridData, meterSnapshot);
+      renderZone('power', sceneMap.power, status, gridData, meterSnapshot);
+      renderZone('watch', sceneMap.watch, status, gridData, meterSnapshot);
+      renderZone('gateway', sceneMap.gateway, status, gridData, meterSnapshot);
+
+      document.getElementById('sum-production').textContent = num(totalGeneration, 0);
+      document.getElementById('sum-load').textContent = num(totalLoad, 0);
+      document.getElementById('sum-battery').textContent = num(batteries.current_charge || 0, 0);
+      document.getElementById('sum-flow').textContent = '4';
+
+      document.getElementById('flow-generation').textContent = `${num(totalGeneration, 0)} kW`;
+      document.getElementById('flow-switch').textContent = `${num(switchLoad, 0)} kW`;
+      document.getElementById('flow-central').textContent = `${num(centralLoad, 0)} kW`;
+      document.getElementById('flow-devices').textContent = `${num(deviceLoad, 0)} kW`;
+
+      document.getElementById('flow-generation-meta').textContent = `solar ${num(production.solar || 0, 0)} kW | wind ${num(production.wind || 0, 0)} kW | battery ${num(batteries.current_charge || 0, 0)} kWh`;
+
+      updateDelta('flow-generation-delta', totalGeneration, lastPowerSnapshot.generation);
+      updateDelta('flow-switch-delta', switchLoad, lastPowerSnapshot.switchLoad);
+      updateDelta('flow-central-delta', centralLoad, lastPowerSnapshot.centralLoad);
+      updateDelta('flow-devices-delta', deviceLoad, lastPowerSnapshot.deviceLoad);
+
+      document.getElementById('flow-generation').parentElement.style.setProperty('--flow-width', `${Math.min(100, Math.max(18, totalGeneration / 2))}%`);
+      document.getElementById('flow-switch').parentElement.style.setProperty('--flow-width', `${Math.min(100, Math.max(18, switchLoad / 2))}%`);
+      document.getElementById('flow-central').parentElement.style.setProperty('--flow-width', `${Math.min(100, Math.max(18, centralLoad / 2))}%`);
+      document.getElementById('flow-devices').parentElement.style.setProperty('--flow-width', `${Math.min(100, Math.max(18, deviceLoad / 2))}%`);
+
+      lastPowerSnapshot = {
+        generation: totalGeneration,
+        switchLoad,
+        centralLoad,
+        deviceLoad
+      };
+
+      document.getElementById('sim-gw-security').textContent = status.gateways?.security || 'offline';
+      document.getElementById('sim-gw-energy').textContent = status.gateways?.energy || 'offline';
+      document.getElementById('sim-gw-central').textContent = status.gateways?.central || 'offline';
+      document.getElementById('sim-mode').textContent = security.motion_detected ? 'ALERT' : 'SAFE';
+      document.getElementById('sim-zone').textContent = security.zone || 'perimeter';
+      document.getElementById('sim-motion').textContent = security.motion_detected ? 'detected' : 'clear';
+
+      const ws = document.getElementById('workspace');
+      const zoneEl = ws.querySelector(`[data-zone="${String(security.zone || 'perimeter').toLowerCase()}"]`);
+      ws.querySelectorAll('.zone').forEach(el => el.style.borderColor = 'rgba(85, 160, 184, 0.55)');
+      if (zoneEl) zoneEl.style.borderColor = security.motion_detected ? 'rgba(255,95,127,0.9)' : 'rgba(61,240,143,0.9)';
+
+      const linkLayer = document.getElementById('link-layer');
+      linkLayer.innerHTML = [
+        '<line id="schema-line-a" class="link-line flow" x1="270" y1="170" x2="470" y2="300"></line>',
+        '<line id="schema-line-b" class="link-line flow" x1="730" y1="170" x2="530" y2="300"></line>',
+        '<line id="schema-line-c" class="link-line flow" x1="270" y1="470" x2="470" y2="340"></line>',
+        '<line id="schema-line-d" class="link-line flow" x1="730" y1="470" x2="530" y2="340"></line>'
+      ].join('');
+
+      document.getElementById('bridge-events').textContent = String(meterSnapshot?.summary?.total_alerts ?? 0);
+      document.getElementById('bridge-api').textContent = 'ONLINE';
+      document.getElementById('bridge-pt').textContent = 'ONLINE';
+      document.getElementById('bridge-ws').textContent = 'READY';
+    }
+
+    const schemaZones = [
+      { key: 'zone-a', label: 'Zone A', busId: 5, aliases: ['zone a', 'zone_a', 'sector_a'] },
+      { key: 'zone-b', label: 'Zone B', busId: 8, aliases: ['zone b', 'zone_b', 'sector_b'] },
+      { key: 'zone-c', label: 'Zone C', busId: 11, aliases: ['zone c', 'zone_c', 'sector_c'] },
+      { key: 'zone-d', label: 'Zone D', busId: 14, aliases: ['zone d', 'zone_d', 'sector_d'] }
+    ];
+
+    function normalizeSchemaZone(value) {
+      const text = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+      if (!text || text === 'n/a' || text === 'na' || text === 'none' || text === 'unknown' || text === 'perimeter') {
+        return '';
+      }
+
+      for (const zone of schemaZones) {
+        if (zone.aliases.some(alias => text === alias || text.includes(alias))) {
+          return zone.key;
+        }
+      }
+
+      return '';
+    }
+
+    function renderPacketTracerSchema(status, gridData, smartMeters) {
+      const summary = smartMeters.summary || {};
+      const meterSource = smartMeters.source || {};
+      const meterLive = Boolean(meterSource.available);
+      const latest = meterLive ? (smartMeters.latest_reading || {}) : {};
+      const latestAlert = meterLive ? (smartMeters.latest_alert || {}) : {};
+      const alerts = meterLive ? (smartMeters.recent_alerts || []) : [];
+      const security = status.security || {};
+      const buses = Array.isArray(gridData.buses) ? gridData.buses : [];
+
+      const latestZoneKey = meterLive ? normalizeSchemaZone(latest.zone) : '';
+      const alertZoneKey = String(latest.statut || '').toUpperCase() === 'ALERTE' ? latestZoneKey : '';
+      const securityZoneKey = Boolean(security.motion_detected) ? normalizeSchemaZone(security.zone) : '';
+      const activeZoneKey = latestZoneKey || alertZoneKey || securityZoneKey;
+      const activeZone = schemaZones.find(zone => zone.key === activeZoneKey) || null;
+      const alertActive = meterLive && (String(latest.statut || '').toUpperCase() === 'ALERTE' || Boolean(security.motion_detected));
+
+      const center = document.getElementById('schema-center');
+      const centerState = document.getElementById('schema-center-state');
+      const centerZone = document.getElementById('schema-center-zone');
+      const centerMeta = document.getElementById('schema-center-meta');
+      if (center) {
+        center.classList.toggle('alert', alertActive);
+        center.classList.toggle('safe', !alertActive);
+      }
+      if (centerState) {
+        centerState.textContent = meterLive ? (alertActive ? 'ALERTE' : 'NORMAL') : 'OFFLINE';
+      }
+      if (centerZone) {
+        centerZone.textContent = meterLive
+          ? (activeZone ? `${activeZone.label} • ${latest.meter_id || latestAlert.meter_id || 'live'}` : 'Monitoring 4 zones')
+          : 'No live smart-meter feed';
+      }
+      if (centerMeta) {
+        centerMeta.textContent = meterLive
+          ? `${Number(summary.total_alerts || 0)} alerts | ${Number(summary.total_readings || 0)} readings`
+          : 'historical data only';
+      }
+
+      const lines = Array.from(document.getElementById('link-layer')?.querySelectorAll('.link-line') || []);
+
+      schemaZones.forEach((zone, index) => {
+        const card = document.getElementById(`schema-${zone.key}`);
+        const loadEl = document.getElementById(`schema-${zone.key}-load`);
+        const busEl = document.getElementById(`schema-${zone.key}-bus`);
+        const meterEl = document.getElementById(`schema-${zone.key}-meter`);
+        const alertsEl = document.getElementById(`schema-${zone.key}-alerts`);
+        const stateEl = document.getElementById(`schema-${zone.key}-state`);
+        const bus = buses.find(item => Number(item.bus_id) === zone.busId) || {};
+        const zoneAlerts = alerts.filter(alert => normalizeSchemaZone(alert.zone) === zone.key);
+        const zoneLatestReading = latestZoneKey === zone.key ? latest : null;
+        const zoneLatestAlert = normalizeSchemaZone(latestAlert.zone) === zone.key ? latestAlert : zoneAlerts[zoneAlerts.length - 1] || null;
+        const busAttack = String(bus.attack_type || 'normal').toLowerCase();
+        const zoneAlertActive = alertActive && activeZoneKey === zone.key;
+        const stateLabel = busAttack !== 'normal'
+          ? busAttack.toUpperCase()
+          : zoneAlertActive
+            ? 'ALERTE'
+            : (meterLive && activeZoneKey === zone.key ? 'NORMAL' : (meterLive ? 'WATCH' : 'OFFLINE'));
+
+        if (card) {
+          card.classList.toggle('active', activeZoneKey === zone.key && !zoneAlertActive);
+          card.classList.toggle('alert', zoneAlertActive);
+        }
+
+        if (loadEl) {
+          loadEl.textContent = meterLive ? `${num(Number(bus.consumption || 0), 0)} kW` : '-- kW';
+        }
+
+        if (busEl) {
+          busEl.textContent = meterLive
+            ? (busAttack !== 'normal'
+              ? `Bus ${zone.busId} • ${num(Number(bus.voltage || 0), 3)} p.u. • ${busAttack.toUpperCase()}`
+              : `Bus ${zone.busId} • ${num(Number(bus.voltage || 0), 3)} p.u.`)
+            : `Bus ${zone.busId} • waiting`;
+        }
+
+        if (meterEl) {
+          meterEl.textContent = meterLive && zoneLatestReading
+            ? `Meter ${zoneLatestReading.meter_id || 'n/a'} • ${zoneLatestReading.type || 'n/a'}`
+            : meterLive && zoneLatestAlert
+              ? `Meter ${zoneLatestAlert.meter_id || 'n/a'} • ${zoneLatestAlert.alerte || 'alert'}`
+              : (meterLive ? 'Waiting for zone data' : 'No live meter data');
+        }
+
+        if (alertsEl) {
+          alertsEl.textContent = meterLive ? `Alerts ${zoneAlerts.length}` : 'Alerts paused';
+        }
+
+        if (stateEl) {
+          stateEl.textContent = stateLabel;
+        }
+
+        const line = lines[index];
+        if (line) {
+          line.classList.toggle('alert', zoneAlertActive);
+          line.classList.toggle('flow', !zoneAlertActive && meterLive);
+        }
+      });
+
+      const bridgeEvents = document.getElementById('bridge-events');
+      if (bridgeEvents) {
+        bridgeEvents.textContent = String(summary.total_alerts || 0);
+      }
+    }
+
+    function renderTelemetry(status, gridData) {
+      const panel = document.getElementById('telemetry-panel');
+      const security = status.security || {};
+      const energy = status.energy || {};
+      const production = energy.production || {};
+      const buses = gridData.buses || [];
+      const totalLoad = buses.reduce((sum, bus) => sum + Number(bus.consumption || 0), 0);
+      const topBus = buses.slice().sort((a, b) => Number(b.consumption || 0) - Number(a.consumption || 0))[0] || {};
+
+      const items = [
+        { kind: 'SYSTEM', desc: `Security mode ${security.motion_detected ? 'ALERT' : 'SAFE'} in ${security.zone || 'perimeter'}` },
+        { kind: 'ENERGY', desc: `Solar ${num(production.solar || 0, 0)} kW | Wind ${num(production.wind || 0, 0)} kW` },
+        { kind: 'GRID', desc: `Load ${num(totalLoad, 0)} kW on bus ${topBus.bus_id || '--'}` },
+        { kind: 'BRIDGE', desc: `Gateway links online: ${status.gateways?.security ? 1 : 0}/${status.gateways?.energy ? 1 : 0}/${status.gateways?.central ? 1 : 0}` }
+      ];
+
+      panel.innerHTML = items.map(item => `
+        <div class="event">
+          <div class="top"><span class="kind">${item.kind}</span><span>${new Date().toLocaleTimeString()}</span></div>
+          <div class="desc">${item.desc}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderSmartMeterPanel(snapshot) {
+      const summary = snapshot.summary || {};
+      const meterLive = Boolean(snapshot.source?.available);
+      const latest = meterLive ? (snapshot.latest_reading || {}) : {};
+      const latestAlert = meterLive ? (snapshot.latest_alert || {}) : {};
+      const alerts = meterLive ? (snapshot.recent_alerts || []) : [];
+
+      const totalReadings = Number(summary.total_readings || 0);
+      const totalAlerts = Number(summary.total_alerts || 0);
+      const alertRate = Number(summary.alert_rate || 0);
+      const status = meterLive ? String(latest.statut || 'NORMAL').toUpperCase() : 'OFFLINE';
+      const anomalies = meterLive ? String(latest.anomalies || 'none') : 'no live feed';
+
+      document.getElementById('sm-total-readings').textContent = String(totalReadings);
+      document.getElementById('sm-total-alerts').textContent = String(totalAlerts);
+      document.getElementById('sm-alert-rate').textContent = `${num(alertRate, 2)}% alert rate`;
+      document.getElementById('sm-meter-id').textContent = meterLive ? (latest.meter_id || '--') : 'OFFLINE';
+      document.getElementById('sm-meter-zone').textContent = meterLive && latest.meter_id ? `${latest.zone || 'n/a'} | ${latest.type || 'n/a'}` : 'waiting for data';
+      document.getElementById('sm-consumption').textContent = meterLive ? `${num(latest.consommation_kw || 0, 3)} kW` : '-- kW';
+      document.getElementById('sm-voltage-current').textContent = meterLive ? `${num(latest.tension_v || 0, 2)} V | ${num(latest.courant_a || 0, 3)} A` : '-- V | -- A';
+      document.getElementById('sm-status').textContent = status;
+      document.getElementById('sm-status').className = `big ${status === 'ALERTE' ? 'status-alert' : (status === 'OFFLINE' ? 'status-alert' : 'status-ok')}`;
+      document.getElementById('sm-anomalies').textContent = anomalies || 'none';
+      document.getElementById('sm-last-update').textContent = meterLive ? (snapshot.source?.last_update || 'waiting') : 'stopped';
+
+      if (meterLive && latestAlert && Object.keys(latestAlert).length > 0) {
+        document.getElementById('sm-latest-alert').textContent = `${latestAlert.meter_id || 'n/a'} | ${latestAlert.alerte || 'alert'}`;
+      } else {
+        document.getElementById('sm-latest-alert').textContent = meterLive ? 'none' : 'offline';
+      }
+
+      const alertPanel = document.getElementById('smart-meter-alerts');
+      if (!meterLive) {
+        alertPanel.innerHTML = `
+          <div class="event">
+            <div class="top"><span class="kind">OFFLINE</span><span>${new Date().toLocaleTimeString()}</span></div>
+            <div class="desc">Smart-meter simulator stopped. Live detections are paused until the CSV feed updates again.</div>
+          </div>
+        `;
+        return;
+      }
+
+      if (!alerts.length) {
+        alertPanel.innerHTML = `
+          <div class="event">
+            <div class="top"><span class="kind">INFO</span><span>${new Date().toLocaleTimeString()}</span></div>
+            <div class="desc">No smart-meter alerts yet. Start the simulator to see detections appear here.</div>
+          </div>
+        `;
+        return;
+      }
+
+      alertPanel.innerHTML = alerts.slice().reverse().map(alert => `
+        <div class="event">
+          <div class="top"><span class="kind">${alert.alerte || 'ALERT'}</span><span>${alert.timestamp || ''}</span></div>
+          <div class="desc">${alert.meter_id || 'n/a'} | ${alert.zone || 'n/a'} | ${num(alert.consumption_kw || 0, 3)} kW | ${num(alert.tension_v || 0, 2)} V</div>
+        </div>
+      `).join('');
+    }
+
+    function resetSecurity() {
+      fetch(`${API_BASE}/api/integrations/silicon-apocalypse/event`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zone: 'perimeter', motion_detected: false, sensor_id: 'reset', severity: 0.1, timestamp: Date.now() / 1000 })
+      }).then(() => {
+        logLine('View reset', 'good');
+        refreshAll();
+      });
+    }
+
+    async function refreshAll() {
+      try {
+        const [grid, status, smartMeters] = await Promise.all([
+          fetchJson(`${API_BASE}/api/grid/all`),
+          fetchJson(`${API_BASE}/api/packet-tracer/status`),
+          fetchJson(`${API_BASE}/api/smart-meters/status?limit=20`)
+        ]);
+        const mergedStatus = { ...status, alerts: [] };
+        renderScene(mergedStatus, grid, smartMeters);
+        renderPacketTracerSchema(mergedStatus, grid, smartMeters);
+        renderTelemetry(mergedStatus, grid);
+        renderSmartMeterPanel(smartMeters);
+        document.getElementById('interval-label').textContent = '3s';
+        refreshCount += 1;
+        document.getElementById('refresh-count').textContent = String(refreshCount);
+        document.getElementById('bridge-api').textContent = 'ONLINE';
+      } catch (err) {
+        logLine(`Refresh failed: ${err.message}`, 'bad');
+        document.getElementById('bridge-api').textContent = 'OFFLINE';
+      }
+    }
+
+    function addControlLog(text, type = 'good') {
+      const entry = document.createElement('div');
+      entry.className = `list-item ${type}`;
+      const time = new Date().toLocaleTimeString();
+      entry.innerHTML = `<span class="left">[${time}] ${text}</span><span class="right good">LIVE</span>`;
+      const log = document.getElementById('control-log');
+      log.prepend(entry);
+      while (log.children.length > 14) log.removeChild(log.lastChild);
+    }
+
+    function cycleClock() {
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    function setupControls() {
+      document.getElementById('control-log').innerHTML = '';
+      logLine('Dashboard initialized', 'good');
+      logLine('Smart meter workflow active', 'good');
+      logLine('FastAPI endpoint connected', 'good');
+      logLine('Smart meter detector connected', 'good');
+      logLine('Live telemetry streaming', 'good');
+      addControlLog('Ready for live sync', 'good');
+      refreshAll();
+      setInterval(refreshAll, 3000);
+    }
+
+    cycleClock();
+    setupControls();
+  </script>
+</body>
+</html>

@@ -3,68 +3,82 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Grid Live Dashboard</title>
+  <title>Smart Grid System Dashboard</title>
   <style>
     :root {
-      --bg: #0d1117;
-      --panel: #151b23;
-      --ok: #2ecc71;
-      --warn: #f1c40f;
-      --danger: #ff5a5f;
-      --text: #e6edf3;
-      --subtle: #8b949e;
-      --accent: #33b3ff;
+      --paper: #f8f7f3;
+      --ink: #132337;
+      --panel: #ffffff;
+      --line: #d4deea;
+      --ok: #1a9d6b;
+      --warn: #f08b2a;
+      --danger: #df3b57;
+      --power: #1b7be8;
+      --subtle: #5e6f84;
+      --accent: #0f5f8c;
     }
 
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      background: radial-gradient(circle at top right, #1d2838, var(--bg) 40%);
-      color: var(--text);
+      color: var(--ink);
+      background: linear-gradient(130deg, #f5efe1 0%, #eef6ff 45%, #f2fff8 100%);
+      font-family: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
     }
 
-    .header {
-      padding: 16px 20px;
-      border-bottom: 1px solid #2d333b;
-      background: rgba(13, 17, 23, 0.8);
-      position: sticky;
-      top: 0;
-      backdrop-filter: blur(8px);
-      z-index: 2;
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      gap: 14px;
     }
 
-    .title { margin: 0; font-size: 22px; letter-spacing: 0.5px; }
-    .subtitle { color: var(--subtle); font-size: 13px; margin-top: 6px; }
+    .hero {
+      background: linear-gradient(140deg, #0f4f6b, #0f2449 55%, #164d64);
+      color: #eaf6ff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 18px 35px rgba(9, 31, 56, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0.4px;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: #c4e4ff;
+      font-size: 14px;
+    }
 
     .toolbar {
+      margin-top: 12px;
       display: flex;
       gap: 8px;
-      margin-top: 10px;
       flex-wrap: wrap;
     }
 
     button {
       border: none;
+      border-radius: 9px;
       padding: 8px 12px;
-      border-radius: 8px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      color: #0b1118;
-      background: var(--accent);
+      background: #def4ff;
+      color: #073857;
+      transition: transform 0.18s ease;
     }
 
-    button.danger {
-      color: #fff;
-      background: var(--danger);
+    button:hover {
+      transform: translateY(-1px);
     }
 
-    .container {
-      padding: 16px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
+    button.warn { background: #ffe8cb; color: #804600; }
+    button.danger { background: #ffd3da; color: #7a1024; }
 
     .stats {
       display: grid;
@@ -72,183 +86,771 @@
       gap: 10px;
     }
 
-    .card {
+    .stat {
       background: var(--panel);
-      border: 1px solid #2d333b;
+      border: 1px solid var(--line);
       border-radius: 12px;
-      padding: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 6px 12px rgba(30, 55, 85, 0.06);
     }
 
-    .stat-title { color: var(--subtle); font-size: 12px; }
-    .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .stat .k {
+      font-size: 12px;
+      color: var(--subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
-    .grid {
+    .stat .v {
+      margin-top: 4px;
+      font-size: 27px;
+      font-weight: 800;
+    }
+
+    .layout {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      grid-template-columns: 1.25fr 0.9fr;
       gap: 12px;
     }
 
-    .bus {
+    .panel {
       background: var(--panel);
-      border: 1px solid #2d333b;
-      border-left: 5px solid var(--ok);
-      border-radius: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 8px 15px rgba(29, 52, 76, 0.08);
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .topology {
+      position: relative;
+      min-height: 650px;
+      background:
+        radial-gradient(circle at 88% 20%, rgba(30, 166, 215, 0.15), transparent 35%),
+        radial-gradient(circle at 9% 85%, rgba(12, 183, 130, 0.16), transparent 38%),
+        #fcfffd;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
       padding: 10px;
     }
 
-    .bus.attack { border-left-color: var(--danger); }
-    .bus h3 { margin: 0 0 6px; }
+    .node {
+      position: absolute;
+      min-width: 80px;
+      padding: 5px 7px;
+      border: 1px solid #bfd2e5;
+      border-radius: 9px;
+      text-align: center;
+      font-size: 11px;
+      background: #ffffff;
+      box-shadow: 0 5px 10px rgba(40, 72, 100, 0.1);
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
 
-    .metric { font-size: 13px; color: var(--subtle); margin-top: 6px; }
-    .value { color: var(--text); font-weight: 700; }
+    .node .name { font-weight: 700; font-size: 12px; }
+    .node .meta { color: #4f637a; margin-top: 2px; }
+    .node.generator { border-color: #7fb6ea; background: #ecf7ff; }
+    .node.zone { border-color: #b8d9cb; background: #f1fff8; }
+    .node.attack { border-color: var(--danger); background: #ffe8ec; }
+
+    .flow-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .flow-line {
+      stroke: var(--power);
+      stroke-width: 2;
+      stroke-linecap: round;
+      fill: none;
+      stroke-dasharray: 5 11;
+      animation: pulse var(--speed, 1.2s) linear infinite;
+      opacity: var(--alpha, 0.55);
+    }
+
+    .flow-line.warning {
+      stroke: var(--warn);
+    }
+
+    .flow-line.attack {
+      stroke: var(--danger);
+      stroke-width: 2.6;
+      opacity: 0.88;
+    }
+
+    @keyframes pulse {
+      from { stroke-dashoffset: 0; }
+      to { stroke-dashoffset: -32; }
+    }
+
+    .legend {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .tables {
+      display: grid;
+      gap: 10px;
+    }
+
+    .table-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      padding: 7px 8px;
+      border-bottom: 1px solid #edf2f7;
+      text-align: left;
+    }
+
+    th {
+      background: #f5fafc;
+      color: #35506e;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .status-ok { color: var(--ok); font-weight: 700; }
+    .status-alert { color: var(--danger); font-weight: 700; }
+    .muted { color: var(--subtle); }
 
     .alerts {
-      max-height: 240px;
+      max-height: 280px;
       overflow: auto;
     }
 
-    .alert {
-      background: #2b1b1e;
-      border: 1px solid #5e2a31;
-      border-left: 4px solid var(--danger);
-      border-radius: 8px;
+    .pt-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
       padding: 8px;
-      margin-bottom: 8px;
-      font-size: 13px;
+      font-size: 12px;
     }
 
-    .muted { color: var(--subtle); }
+    .pt-card {
+      border: 1px solid #e6edf5;
+      border-radius: 9px;
+      background: #f8fcff;
+      padding: 8px;
+    }
+
+    .pt-title {
+      font-weight: 700;
+      color: #214765;
+      margin-bottom: 6px;
+    }
+
+    .pt-line {
+      color: #2c4864;
+      margin-top: 3px;
+    }
+
+    .pt-state-safe {
+      color: var(--ok);
+      font-weight: 700;
+    }
+
+    .pt-state-alert {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .pt-controls {
+      padding: 0 8px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pt-controls button {
+      padding: 6px 10px;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+
+    .alert {
+      border: 1px solid #ffd6de;
+      border-left: 4px solid var(--danger);
+      border-radius: 9px;
+      background: #fff4f7;
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1120px) {
+      .layout { grid-template-columns: 1fr; }
+      .topology { min-height: 600px; }
+    }
   </style>
 </head>
 <body>
-  <header class="header">
-    <h1 class="title">Smart Grid Live Monitor</h1>
-    <div class="subtitle" id="last-update">Waiting for updates...</div>
-    <div class="toolbar">
-      <button onclick="injectAttack('fdia')">Inject FDIA</button>
-      <button class="danger" onclick="injectAttack('dos')">Inject DoS</button>
-    </div>
-  </header>
+  <main class="shell">
+    <section class="hero">
+      <h1>Smart Grid Operations and Circulation Dashboard</h1>
+      <p id="last-update">Waiting for live telemetry...</p>
+      <div class="toolbar">
+        <button onclick="injectAttack('fdia')">Inject FDIA</button>
+        <button class="danger" onclick="injectAttack('dos')">Inject DoS</button>
+        <button class="warn" onclick="triggerZone('sector_a', 0.85)">Code Red Sector A</button>
+        <button class="warn" onclick="triggerZone('sector_b', 0.90)">Code Red Sector B</button>
+        <button class="warn" onclick="triggerZone('sector_c', 0.70)">Code Red Sector C</button>
+      </div>
+    </section>
 
-  <main class="container">
     <section class="stats">
-      <div class="card">
-        <div class="stat-title">Buses online</div>
-        <div class="stat-value" id="stat-buses">0</div>
-      </div>
-      <div class="card">
-        <div class="stat-title">Active attacks</div>
-        <div class="stat-value" id="stat-attacks">0</div>
-      </div>
-      <div class="card">
-        <div class="stat-title">Average voltage</div>
-        <div class="stat-value" id="stat-voltage">0.000 pu</div>
-      </div>
-      <div class="card">
-        <div class="stat-title">Total consumption</div>
-        <div class="stat-value" id="stat-consumption">0.00 kW</div>
-      </div>
+      <div class="stat"><div class="k">Buses Online</div><div class="v" id="stat-buses">0</div></div>
+      <div class="stat"><div class="k">Live Generation (est.)</div><div class="v" id="stat-generation">0.00 kW</div></div>
+      <div class="stat"><div class="k">Total Consumption</div><div class="v" id="stat-load">0.00 kW</div></div>
+      <div class="stat"><div class="k">Active Incidents</div><div class="v" id="stat-attacks">0</div></div>
+      <div class="stat"><div class="k">Avg Frequency</div><div class="v" id="stat-frequency">0.000 Hz</div></div>
     </section>
 
-    <section class="card">
-      <h2>Bus Telemetry</h2>
-      <div id="grid" class="grid"></div>
-    </section>
+    <section class="layout">
+      <div class="panel">
+        <h2>Real-Time Electricity Circulation Map</h2>
+        <div id="topology" class="topology">
+          <svg id="flow-svg" class="flow-layer" viewBox="0 0 1000 660" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:#1b7be8"></span>Normal flow</span>
+          <span><span class="dot" style="background:#f08b2a"></span>High-load flow</span>
+          <span><span class="dot" style="background:#df3b57"></span>Attack impacted flow</span>
+        </div>
+      </div>
 
-    <section class="card alerts">
-      <h2>Recent Alerts</h2>
-      <div id="alerts" class="muted">No alerts yet</div>
+      <div class="panel tables">
+        <div class="table-box">
+          <table>
+            <thead>
+              <tr><th>Packet Tracer Live Bridge</th></tr>
+            </thead>
+          </table>
+          <div class="pt-grid">
+            <div class="pt-card">
+              <div class="pt-title">Gateways</div>
+              <div class="pt-line">Security: <span id="pt-gw-security">Unknown</span></div>
+              <div class="pt-line">Energy: <span id="pt-gw-energy">Unknown</span></div>
+              <div class="pt-line">Central: <span id="pt-gw-central">Unknown</span></div>
+            </div>
+            <div class="pt-card">
+              <div class="pt-title">Battery + Production</div>
+              <div class="pt-line">Batteries: <span id="pt-bat-count">0</span></div>
+              <div class="pt-line">Charge: <span id="pt-bat-charge">0.0</span> / <span id="pt-bat-capacity">0.0</span> kWh</div>
+              <div class="pt-line">Solar/Wind: <span id="pt-production">0.0 / 0.0</span> kW</div>
+            </div>
+            <div class="pt-card">
+              <div class="pt-title">Home Devices</div>
+              <div class="pt-line">Thermostat: <span id="pt-thermostat">-</span> C</div>
+              <div class="pt-line">Fan: <span id="pt-fan">-</span>%</div>
+              <div class="pt-line">AC: <span id="pt-ac">-</span> W</div>
+            </div>
+            <div class="pt-card">
+              <div class="pt-title">Security State</div>
+              <div class="pt-line">Mode: <span id="pt-mode" class="pt-state-safe">SAFE</span></div>
+              <div class="pt-line">Gate: <span id="pt-gate">-</span></div>
+              <div class="pt-line">Motion: <span id="pt-motion">-</span></div>
+            </div>
+          </div>
+          <div class="pt-controls">
+            <button class="warn" onclick="queuePtCommand('code_red')">Queue Code Red</button>
+            <button onclick="queuePtCommand('code_green')">Queue Code Green</button>
+            <button onclick="queuePtCommand('set_thermostat', 20)">Set Thermostat 20C</button>
+          </div>
+        </div>
+
+        <div class="table-box">
+          <table>
+            <thead>
+              <tr><th colspan="4">Generation Components</th></tr>
+              <tr><th>Unit</th><th>Type</th><th>Bus</th><th>Status</th></tr>
+            </thead>
+            <tbody id="generation-table"></tbody>
+          </table>
+        </div>
+
+        <div class="table-box">
+          <table>
+            <thead>
+              <tr><th colspan="5">Bus Telemetry (14 Grid Devices)</th></tr>
+              <tr><th>Bus</th><th>Voltage</th><th>Current</th><th>Load</th><th>Status</th></tr>
+            </thead>
+            <tbody id="bus-table"></tbody>
+          </table>
+        </div>
+
+        <div class="table-box">
+          <table>
+            <thead>
+              <tr><th colspan="4">Security and Zone Devices</th></tr>
+              <tr><th>Zone</th><th>Mapped Bus</th><th>Sensors</th><th>State</th></tr>
+            </thead>
+            <tbody id="zone-table"></tbody>
+          </table>
+        </div>
+
+        <div class="table-box alerts">
+          <table>
+            <thead>
+              <tr><th>Recent Alerts</th></tr>
+            </thead>
+          </table>
+          <div id="alerts" class="muted" style="padding:8px">No alerts yet</div>
+        </div>
+      </div>
     </section>
   </main>
 
   <script>
-    const API = '';
+    const API = "";
+    const TOPOLOGY = {
+      generators: [
+        { id: "G1", label: "Gas Plant 1", type: "gas", bus: 1, x: 110, y: 90 },
+        { id: "G2", label: "Gas Plant 2", type: "gas", bus: 2, x: 110, y: 180 },
+        { id: "SOLAR", label: "Solar Farm", type: "solar", bus: 3, x: 110, y: 270 },
+        { id: "WIND", label: "Wind Farm", type: "wind", bus: 6, x: 110, y: 360 },
+        { id: "HYDRO", label: "Hydro Plant", type: "hydro", bus: 8, x: 110, y: 450 }
+      ],
+      buses: [
+        { id: 1, x: 340, y: 90 }, { id: 2, x: 470, y: 90 }, { id: 3, x: 600, y: 90 },
+        { id: 4, x: 730, y: 120 }, { id: 5, x: 840, y: 190 }, { id: 6, x: 890, y: 300 },
+        { id: 7, x: 840, y: 410 }, { id: 8, x: 730, y: 490 }, { id: 9, x: 600, y: 530 },
+        { id: 10, x: 470, y: 530 }, { id: 11, x: 340, y: 530 }, { id: 12, x: 240, y: 460 },
+        { id: 13, x: 200, y: 340 }, { id: 14, x: 240, y: 210 }
+      ],
+      zones: [
+        { id: "sector_a", bus: 5, x: 950, y: 160 },
+        { id: "sector_b", bus: 8, x: 950, y: 250 },
+        { id: "sector_c", bus: 11, x: 950, y: 340 },
+        { id: "sector_d", bus: 14, x: 950, y: 430 },
+        { id: "perimeter", bus: 6, x: 950, y: 520 }
+      ]
+    };
 
-    function number(value, d = 3) {
-      return Number(value || 0).toFixed(d);
+    const RING_CONNECTIONS = [
+      [1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,1],
+      [2,9],[3,10],[4,12],[6,13]
+    ];
+
+    function num(v, d = 3) { return Number(v || 0).toFixed(d); }
+    function byBus(buses) {
+      const map = {};
+      buses.forEach(b => { map[b.bus_id] = b; });
+      return map;
+    }
+
+    function nodeXY(id, type = "bus") {
+      if (type === "bus") {
+        const n = TOPOLOGY.buses.find(b => b.id === id);
+        return n ? { x: n.x, y: n.y } : { x: 0, y: 0 };
+      }
+      if (type === "generator") {
+        const n = TOPOLOGY.generators.find(g => g.id === id);
+        return n ? { x: n.x, y: n.y } : { x: 0, y: 0 };
+      }
+      const n = TOPOLOGY.zones.find(z => z.id === id);
+      return n ? { x: n.x, y: n.y } : { x: 0, y: 0 };
+    }
+
+    async function fetchAlerts() {
+      const res = await fetch(`${API}/api/alerts?limit=25`);
+      if (!res.ok) throw new Error("alerts fetch failed");
+      return res.json();
     }
 
     async function fetchGrid() {
       const res = await fetch(`${API}/api/grid/all`);
-      if (!res.ok) throw new Error('Failed to fetch grid data');
+      if (!res.ok) throw new Error("grid fetch failed");
       return res.json();
     }
 
-    async function fetchAlerts() {
-      const res = await fetch(`${API}/api/alerts?limit=20`);
-      if (!res.ok) throw new Error('Failed to fetch alerts');
+    async function fetchPacketTracerStatus() {
+      const res = await fetch(`${API}/api/packet-tracer/status`);
+      if (!res.ok) throw new Error("packet tracer status fetch failed");
       return res.json();
     }
 
     async function injectAttack(type) {
       const bus = Math.floor(Math.random() * 14) + 1;
-      const url = `${API}/api/simulate/attack?bus_id=${bus}&attack_type=${type}&magnitude=0.3&duration=25`;
-      await fetch(url, { method: 'POST' });
+      const url = `${API}/api/simulate/attack?bus_id=${bus}&attack_type=${type}&magnitude=0.35&duration=20`;
+      await fetch(url, { method: "POST" });
       await refresh();
     }
 
-    function renderGrid(buses) {
-      const grid = document.getElementById('grid');
-      const sorted = [...buses].sort((a, b) => a.bus_id - b.bus_id);
-
-      grid.innerHTML = sorted.map(bus => {
-        const attack = bus.attack_type !== 'normal';
-        return `
-          <div class="bus ${attack ? 'attack' : ''}">
-            <h3>Bus ${bus.bus_id}</h3>
-            <div class="metric">Voltage: <span class="value">${number(bus.voltage, 4)} pu</span></div>
-            <div class="metric">Frequency: <span class="value">${number(bus.frequency, 3)} Hz</span></div>
-            <div class="metric">Consumption: <span class="value">${number(bus.consumption, 3)} kW</span></div>
-            <div class="metric">Current: <span class="value">${number(bus.current, 2)} A</span></div>
-            <div class="metric">Type: <span class="value">${bus.consumer_type}</span></div>
-            <div class="metric">Status: <span class="value">${attack ? bus.attack_type.toUpperCase() : 'NORMAL'}</span></div>
-          </div>
-        `;
-      }).join('');
+    async function triggerZone(zone, severity) {
+      await fetch(`${API}/api/integrations/silicon-apocalypse/event`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          zone,
+          motion_detected: true,
+          sensor_id: `${zone}_sensor`,
+          severity,
+          consumption_kw: 2 + severity * 8,
+          voltage_v: 228
+        })
+      });
+      await refresh();
     }
 
-    function renderAlerts(alerts) {
-      const box = document.getElementById('alerts');
-      if (!alerts.length) {
-        box.innerHTML = '<div class="muted">No alerts yet</div>';
-        return;
-      }
+    async function queuePtCommand(type, value = null) {
+      await fetch(`${API}/api/packet-tracer/commands`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, value })
+      });
 
-      box.innerHTML = alerts.slice().reverse().map(alert => `
-        <div class="alert">
-          <div><strong>${alert.attack_type.toUpperCase()}</strong> on Bus ${alert.bus_id}</div>
-          <div>${alert.description}</div>
-          <div class="muted">confidence=${number(alert.confidence, 2)} time=${new Date(alert.timestamp * 1000).toLocaleTimeString()}</div>
-        </div>
-      `).join('');
+      if (type === "code_red") {
+        await triggerZone("perimeter", 0.85);
+      }
+    }
+
+    function textOr(v, fallback = "-") {
+      return (v === null || v === undefined || v === "") ? fallback : v;
+    }
+
+    function renderPacketTracer(status) {
+      const gateways = status.gateways || {};
+      const energy = status.energy || {};
+      const batteries = energy.batteries || {};
+      const production = energy.production || {};
+      const security = status.security || {};
+      const home = status.home_devices || {};
+
+      document.getElementById("pt-gw-security").textContent = textOr(gateways.security, "offline");
+      document.getElementById("pt-gw-energy").textContent = textOr(gateways.energy, "offline");
+      document.getElementById("pt-gw-central").textContent = textOr(gateways.central, "offline");
+
+      document.getElementById("pt-bat-count").textContent = textOr(batteries.count, 0);
+      document.getElementById("pt-bat-charge").textContent = num(batteries.current_charge || 0, 1);
+      document.getElementById("pt-bat-capacity").textContent = num(batteries.total_capacity || 0, 1);
+      document.getElementById("pt-production").textContent = `${num(production.solar || 0, 1)} / ${num(production.wind || 0, 1)}`;
+
+      document.getElementById("pt-thermostat").textContent = textOr(home.thermostat, "-");
+      document.getElementById("pt-fan").textContent = textOr(home.fan_speed, "-");
+      document.getElementById("pt-ac").textContent = textOr(home.ac_power, "-");
+
+      const activeRed = Boolean(security.code_red || security.motion_detected);
+      const modeEl = document.getElementById("pt-mode");
+      modeEl.textContent = activeRed ? "CODE RED" : "SAFE";
+      modeEl.className = activeRed ? "pt-state-alert" : "pt-state-safe";
+      document.getElementById("pt-gate").textContent = textOr(security.gate_status, "-");
+      document.getElementById("pt-motion").textContent = security.motion_detected ? "detected" : "clear";
+    }
+
+    async function refreshPacketTracer() {
+      try {
+        const status = await fetchPacketTracerStatus();
+        renderPacketTracer(status);
+      } catch (_) {
+        // Keep existing values when Packet Tracer bridge is not yet publishing.
+      }
+    }
+
+    function ensureNodes() {
+      const host = document.getElementById("topology");
+      host.querySelectorAll(".node").forEach(n => n.remove());
+
+      TOPOLOGY.generators.forEach(g => {
+        host.insertAdjacentHTML("beforeend", `
+          <div id="node-gen-${g.id}" class="node generator" style="left:${g.x/10}%;top:${g.y/6.6}%">
+            <div class="name">${g.id}</div>
+            <div class="meta">${g.type}</div>
+          </div>
+        `);
+      });
+
+      TOPOLOGY.buses.forEach(b => {
+        host.insertAdjacentHTML("beforeend", `
+          <div id="node-bus-${b.id}" class="node" style="left:${b.x/10}%;top:${b.y/6.6}%">
+            <div class="name">Bus ${b.id}</div>
+            <div class="meta" id="node-meta-${b.id}">0.000 kW</div>
+          </div>
+        `);
+      });
+
+      TOPOLOGY.zones.forEach(z => {
+        host.insertAdjacentHTML("beforeend", `
+          <div id="node-zone-${z.id}" class="node zone" style="left:${z.x/10}%;top:${z.y/6.6}%">
+            <div class="name">${z.id.toUpperCase()}</div>
+            <div class="meta">Sensor Cluster</div>
+          </div>
+        `);
+      });
+    }
+
+    function line(x1, y1, x2, y2, cls, speed, alpha) {
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="flow-line ${cls}" style="--speed:${speed}s;--alpha:${alpha}"></line>`;
+    }
+
+    function renderFlow(buses) {
+      const busMap = byBus(buses);
+      const svg = document.getElementById("flow-svg");
+      const output = [];
+
+      TOPOLOGY.generators.forEach(g => {
+        const bus = busMap[g.bus] || {};
+        const p1 = nodeXY(g.id, "generator");
+        const p2 = nodeXY(g.bus, "bus");
+        const load = Number(bus.consumption || 0);
+        const underAttack = (bus.attack_type || "normal") !== "normal";
+        const cls = underAttack ? "attack" : (load > 5.0 ? "warning" : "");
+        const speed = Math.max(0.45, 1.7 - load * 0.12);
+        const alpha = Math.min(0.95, 0.45 + Number(bus.current || 0) / 28);
+        output.push(line(p1.x, p1.y, p2.x, p2.y, cls, num(speed, 2), num(alpha, 2)));
+      });
+
+      RING_CONNECTIONS.forEach(([a, b]) => {
+        const ba = busMap[a] || {};
+        const bb = busMap[b] || {};
+        const p1 = nodeXY(a, "bus");
+        const p2 = nodeXY(b, "bus");
+        const load = (Number(ba.consumption || 0) + Number(bb.consumption || 0)) / 2;
+        const attack = (ba.attack_type || "normal") !== "normal" || (bb.attack_type || "normal") !== "normal";
+        const cls = attack ? "attack" : (load > 3.5 ? "warning" : "");
+        const speed = Math.max(0.35, 1.8 - load * 0.16);
+        const alpha = Math.min(0.88, 0.35 + (Number(ba.current || 0) + Number(bb.current || 0)) / 65);
+        output.push(line(p1.x, p1.y, p2.x, p2.y, cls, num(speed, 2), num(alpha, 2)));
+      });
+
+      TOPOLOGY.zones.forEach(z => {
+        const bus = busMap[z.bus] || {};
+        const p1 = nodeXY(z.bus, "bus");
+        const p2 = nodeXY(z.id, "zone");
+        const attack = (bus.attack_type || "normal") !== "normal";
+        const cls = attack ? "attack" : "";
+        const speed = attack ? 0.35 : 1.6;
+        const alpha = attack ? 0.9 : 0.4;
+        output.push(line(p1.x, p1.y, p2.x, p2.y, cls, num(speed, 2), num(alpha, 2)));
+      });
+
+      svg.innerHTML = output.join("");
+    }
+
+    function renderTables(buses) {
+      const sorted = [...buses].sort((a, b) => a.bus_id - b.bus_id);
+
+      document.getElementById("generation-table").innerHTML = TOPOLOGY.generators.map(g => {
+        const bus = sorted.find(x => x.bus_id === g.bus) || {};
+        const alarm = (bus.attack_type || "normal") !== "normal";
+        return `
+          <tr>
+            <td>${g.label}</td>
+            <td>${g.type}</td>
+            <td>Bus ${g.bus}</td>
+            <td class="${alarm ? "status-alert" : "status-ok"}">${alarm ? "IMPacted" : "ONLINE"}</td>
+          </tr>
+        `;
+      }).join("");
+
+      document.getElementById("bus-table").innerHTML = sorted.map(b => {
+        const attack = b.attack_type !== "normal";
+        return `
+          <tr>
+            <td>${b.bus_id}</td>
+            <td>${num(b.voltage, 4)} pu</td>
+            <td>${num(b.current, 2)} A</td>
+            <td>${num(b.consumption, 3)} kW</td>
+            <td class="${attack ? "status-alert" : "status-ok"}">${attack ? b.attack_type.toUpperCase() : "NORMAL"}</td>
+          </tr>
+        `;
+      }).join("");
+
+      document.getElementById("zone-table").innerHTML = TOPOLOGY.zones.map(z => {
+        const bus = sorted.find(x => x.bus_id === z.bus) || {};
+        const attack = (bus.attack_type || "normal") !== "normal";
+        return `
+          <tr>
+            <td>${z.id}</td>
+            <td>${z.bus}</td>
+            <td>motion, cam, gate</td>
+            <td class="${attack ? "status-alert" : "status-ok"}">${attack ? "CODE RED" : "SAFE"}</td>
+          </tr>
+        `;
+      }).join("");
+
+      sorted.forEach(b => {
+        const meta = document.getElementById(`node-meta-${b.bus_id}`);
+        if (meta) meta.textContent = `${num(b.consumption, 2)} kW`;
+
+        const node = document.getElementById(`node-bus-${b.bus_id}`);
+        if (node) {
+          if (b.attack_type !== "normal") node.classList.add("attack");
+          else node.classList.remove("attack");
+        }
+      });
     }
 
     function renderStats(buses) {
-      const active = buses.filter(b => b.attack_type !== 'normal').length;
-      const avgV = buses.length ? buses.reduce((s, b) => s + Number(b.voltage || 0), 0) / buses.length : 0;
-      const totalC = buses.reduce((s, b) => s + Number(b.consumption || 0), 0);
+      const active = buses.filter(b => b.attack_type !== "normal").length;
+      const totalLoad = buses.reduce((s, b) => s + Number(b.consumption || 0), 0);
+      const avgFreq = buses.length ? buses.reduce((s, b) => s + Number(b.frequency || 0), 0) / buses.length : 0;
+      const generation = totalLoad * 1.08;
 
-      document.getElementById('stat-buses').textContent = String(buses.length);
-      document.getElementById('stat-attacks').textContent = String(active);
-      document.getElementById('stat-voltage').textContent = `${number(avgV, 4)} pu`;
-      document.getElementById('stat-consumption').textContent = `${number(totalC, 2)} kW`;
+      document.getElementById("stat-buses").textContent = String(buses.length);
+      document.getElementById("stat-generation").textContent = `${num(generation, 2)} kW`;
+      document.getElementById("stat-load").textContent = `${num(totalLoad, 2)} kW`;
+      document.getElementById("stat-attacks").textContent = String(active);
+      document.getElementById("stat-frequency").textContent = `${num(avgFreq, 3)} Hz`;
+    }
+
+    function renderAlerts(alerts) {
+      const root = document.getElementById("alerts");
+      if (!alerts.length) {
+        root.innerHTML = '<div class="muted">No alerts yet</div>';
+        return;
+      }
+
+      root.innerHTML = alerts.slice().reverse().map(a => `
+        <div class="alert">
+          <div><strong>${a.attack_type.toUpperCase()}</strong> at Bus ${a.bus_id}</div>
+          <div>${a.description}</div>
+          <div class="muted">confidence=${num(a.confidence, 2)} time=${new Date(a.timestamp * 1000).toLocaleTimeString()}</div>
+        </div>
+      `).join("");
     }
 
     async function refresh() {
       try {
         const [gridData, alertData] = await Promise.all([fetchGrid(), fetchAlerts()]);
-        renderGrid(gridData.buses || []);
-        renderStats(gridData.buses || []);
+        const buses = gridData.buses || [];
+        applyBusFrame(buses);
         renderAlerts(alertData.alerts || []);
-        document.getElementById('last-update').textContent =
-          `Last update: ${new Date().toLocaleTimeString()} | source: /api/grid/all`;
+        document.getElementById("last-update").textContent =
+          `Live at ${new Date().toLocaleTimeString()} | stream mode: REST fallback | circulation animation active`;
       } catch (err) {
-        document.getElementById('last-update').textContent = `Error: ${err.message}`;
+        document.getElementById("last-update").textContent = `Data stream error: ${err.message}`;
       }
     }
 
+    function applyBusFrame(buses) {
+      renderStats(buses);
+      renderFlow(buses);
+      renderTables(buses);
+    }
+
+    let ws = null;
+    let wsConnected = false;
+    let wsWatchdog = null;
+    let fallbackPoll = null;
+
+    function wsUrl() {
+      const proto = window.location.protocol === "https:" ? "wss" : "ws";
+      return `${proto}://${window.location.host}/ws`;
+    }
+
+    function setStatus(text) {
+      document.getElementById("last-update").textContent = text;
+    }
+
+    function startFallbackPolling() {
+      if (fallbackPoll) return;
+      fallbackPoll = setInterval(() => {
+        refresh();
+      }, 1000);
+    }
+
+    function stopFallbackPolling() {
+      if (!fallbackPoll) return;
+      clearInterval(fallbackPoll);
+      fallbackPoll = null;
+    }
+
+    function connectWebSocket() {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+
+      ws = new WebSocket(wsUrl());
+
+      ws.onopen = () => {
+        wsConnected = true;
+        stopFallbackPolling();
+        setStatus(`Live at ${new Date().toLocaleTimeString()} | stream mode: WebSocket /ws | circulation animation active`);
+        ws.send("get_data");
+        ws.send("get_alerts");
+      };
+
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === "update" || msg.type === "grid_data") {
+            const buses = msg.data || [];
+            applyBusFrame(buses);
+            setStatus(`Live at ${new Date().toLocaleTimeString()} | stream mode: WebSocket /ws | circulation animation active`);
+          } else if (msg.type === "alerts") {
+            renderAlerts(msg.data || []);
+          }
+        } catch (err) {
+          setStatus(`WebSocket decode error: ${err.message}`);
+        }
+      };
+
+      ws.onerror = () => {
+        wsConnected = false;
+        setStatus(`Live at ${new Date().toLocaleTimeString()} | stream mode: WebSocket error, using REST fallback`);
+        startFallbackPolling();
+      };
+
+      ws.onclose = () => {
+        wsConnected = false;
+        setStatus(`Live at ${new Date().toLocaleTimeString()} | stream mode: reconnecting WebSocket, REST fallback active`);
+        startFallbackPolling();
+        setTimeout(connectWebSocket, 1500);
+      };
+    }
+
+    function startWatchdog() {
+      if (wsWatchdog) return;
+      wsWatchdog = setInterval(() => {
+        if (wsConnected && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send("get_data");
+          ws.send("get_alerts");
+        }
+      }, 1000);
+    }
+
+    ensureNodes();
     refresh();
-    setInterval(refresh, 1000);
+    connectWebSocket();
+    startWatchdog();
+    refreshPacketTracer();
+    setInterval(refreshPacketTracer, 1500);
   </script>
 </body>
 </html>
