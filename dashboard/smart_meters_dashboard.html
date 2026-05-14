@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Meters - Enhanced Detection Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      padding: 30px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 15px;
+      margin-bottom: 30px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: #00ff88;
+      text-shadow: 0 0 20px rgba(0,255,136,0.5);
+    }
+    
+    .header .status {
+      font-size: 1.2em;
+      color: #ffaa44;
+    }
+    
+    .status-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #00ff88;
+      animation: pulse 2s infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: rgba(255,255,255,0.08);
+      padding: 25px;
+      border-radius: 15px;
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,255,136,0.3);
+    }
+    
+    .stat-card .label {
+      font-size: 0.9em;
+      color: #aaa;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-card .value {
+      font-size: 2.5em;
+      font-weight: bold;
+      color: #00ff88;
+    }
+    
+    .stat-card.alert .value {
+      color: #ff3355;
+    }
+    
+    .stat-card.warning .value {
+      color: #ffaa44;
+    }
+    
+    .section {
+      background: rgba(255,255,255,0.05);
+      padding: 25px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .section h2 {
+      margin-bottom: 20px;
+      color: #00ccff;
+      font-size: 1.8em;
+    }
+    
+    .latest-reading {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      padding: 20px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      border-left: 4px solid #00ff88;
+    }
+    
+    .reading-item {
+      padding: 10px;
+    }
+    
+    .reading-item .key {
+      font-size: 0.85em;
+      color: #aaa;
+      margin-bottom: 5px;
+    }
+    
+    .reading-item .val {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #fff;
+    }
+    
+    .alerts-container {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    
+    .alert-item {
+      background: rgba(255,51,85,0.1);
+      border-left: 4px solid #ff3355;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    
+    .alert-item .time {
+      font-size: 0.85em;
+      color: #aaa;
+      margin-bottom: 5px;
+    }
+    
+    .alert-item .details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .enhanced-section {
+      background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,204,255,0.1));
+      border: 2px solid rgba(0,255,136,0.3);
+    }
+    
+    .criteria-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .criteria-item {
+      background: rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .criteria-item .name {
+      font-size: 0.9em;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+    
+    .criteria-item .score {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #00ff88;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ff88, #00ccff);
+      transition: width 0.5s ease;
+    }
+    
+    .anomaly-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    
+    .anomaly-badge.normal {
+      background: rgba(0,255,136,0.2);
+      color: #00ff88;
+      border: 1px solid #00ff88;
+    }
+    
+    .anomaly-badge.alert {
+      background: rgba(255,51,85,0.2);
+      color: #ff3355;
+      border: 1px solid #ff3355;
+    }
+    
+    .chart-container {
+      background: rgba(0,0,0,0.3);
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #aaa;
+      font-size: 1.2em;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,255,136,0.3);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,255,136,0.5);
+    }
+    
+    .refresh-info {
+      text-align: center;
+      color: #aaa;
+      font-size: 0.9em;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔋 Smart Meters Enhanced Detection Dashboard</h1>
+    <div class="status">
+      <span class="status-dot"></span>
+      <span id="status-text">Connecting to API...</span>
+    </div>
+    <div class="refresh-info" id="last-update">Last update: Never</div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total Readings</div>
+      <div class="value" id="total-readings">0</div>
+    </div>
+    <div class="stat-card alert">
+      <div class="label">Total Alerts</div>
+      <div class="value" id="total-alerts">0</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="label">Alert Rate</div>
+      <div class="value" id="alert-rate">0%</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Active Meters</div>
+      <div class="value" id="active-meters">100</div>
+    </div>
+  </div>
+
+  <div class="section enhanced-section">
+    <h2>📊 Latest Reading</h2>
+    <div id="latest-reading-container">
+      <div class="no-data">No data available yet...</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>⚠️ Recent Alerts (Last 10)</h2>
+    <div class="alerts-container" id="alerts-container">
+      <div class="no-data">No alerts yet...</div>
+    </div>
+  </div>
+
+  <div class="section enhanced-section">
+    <h2>🎯 Enhanced Detection Criteria</h2>
+    <p style="color: #aaa; margin-bottom: 15px;">
+      7-criteria multi-layer detection system with ML-based anomaly detection
+    </p>
+    <div class="criteria-grid">
+      <div class="criteria-item">
+        <div class="name">ML Reconstruction</div>
+        <div class="score">20%</div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 20%"></div></div>
+      </div>
+      <div class="criteria-item">
+        <div class="name">Voltage Anomalies</div>
+        <div class="score">20%</div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 20%"></div></div>
+      </div>
+      <div class="criteria-item">
+        <div class="name">Consumption</div>
+        <div class="score">15%</div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 15%"></div></div>
+      </div>
+      <div class="criteria-item">
+        <div class="name">Power Factor</div>
+        <div class="score">15%</div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 15%"></div></div>
+      </div>
+      <div class="criteria-item">
+        <div class="name">Frequency</div>
+        <div class="score">15%</div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 15%"></div></div>
+      </div>
+      <div class="criteria-item">
+        <div class="name">Temporal Patterns</div>
+        <div class="score">10%</div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 10%"></div></div>
+      </div>
+      <div class="criteria-item">
+        <div class="name">Rate of Change</div>
+        <div class="score">5%</div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 5%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '';
+    let refreshInterval = null;
+
+    function formatNumber(num) {
+      return Number(num).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    }
+
+    function formatTimestamp(ts) {
+      if (!ts) return 'N/A';
+      return new Date(ts).toLocaleString();
+    }
+
+    async function fetchSmartMeterData() {
+      try {
+        const response = await fetch(`${API_BASE}/api/smart-meters/status?limit=10`);
+        if (!response.ok) throw new Error('API request failed');
+        
+        const data = await response.json();
+        updateDashboard(data);
+        
+        document.getElementById('status-text').textContent = 'Live - Connected';
+        document.getElementById('last-update').textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        document.getElementById('status-text').textContent = 'Error - Disconnected';
+      }
+    }
+
+    function updateDashboard(data) {
+      // Update summary stats
+      document.getElementById('total-readings').textContent = formatNumber(data.summary.total_readings);
+      document.getElementById('total-alerts').textContent = formatNumber(data.summary.total_alerts);
+      document.getElementById('alert-rate').textContent = `${data.summary.alert_rate.toFixed(2)}%`;
+      
+      // Update latest reading
+      if (data.latest_reading && data.latest_reading.timestamp) {
+        const reading = data.latest_reading;
+        const isAlert = reading.statut === 'ALERTE';
+        
+        document.getElementById('latest-reading-container').innerHTML = `
+          <div class="latest-reading" style="border-left-color: ${isAlert ? '#ff3355' : '#00ff88'}">
+            <div class="reading-item">
+              <div class="key">Timestamp</div>
+              <div class="val">${reading.timestamp}</div>
+            </div>
+            <div class="reading-item">
+              <div class="key">Meter ID</div>
+              <div class="val">${reading.meter_id}</div>
+            </div>
+            <div class="reading-item">
+              <div class="key">Zone</div>
+              <div class="val">${reading.zone}</div>
+            </div>
+            <div class="reading-item">
+              <div class="key">Type</div>
+              <div class="val">${reading.type}</div>
+            </div>
+            <div class="reading-item">
+              <div class="key">Consumption</div>
+              <div class="val">${reading.consommation_kw.toFixed(2)} kW</div>
+            </div>
+            <div class="reading-item">
+              <div class="key">Voltage</div>
+              <div class="val">${reading.tension_v.toFixed(2)} V</div>
+            </div>
+            <div class="reading-item">
+              <div class="key">Current</div>
+              <div class="val">${reading.courant_a.toFixed(2)} A</div>
+            </div>
+            <div class="reading-item">
+              <div class="key">Status</div>
+              <div class="val">
+                <span class="anomaly-badge ${isAlert ? 'alert' : 'normal'}">
+                  ${reading.statut}
+                </span>
+              </div>
+            </div>
+            <div class="reading-item" style="grid-column: 1 / -1;">
+              <div class="key">Anomalies</div>
+              <div class="val">${reading.anomalies || 'none'}</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Update recent alerts
+      if (data.recent_alerts && data.recent_alerts.length > 0) {
+        const alertsHtml = data.recent_alerts.map(alert => `
+          <div class="alert-item">
+            <div class="time">⏰ ${alert.timestamp}</div>
+            <div style="margin: 10px 0;">
+              <span class="anomaly-badge alert">${alert.meter_id}</span>
+              <span class="anomaly-badge alert">${alert.zone}</span>
+              <span class="anomaly-badge alert">${alert.type}</span>
+            </div>
+            <div class="details">
+              <div>
+                <div class="key">Consumption</div>
+                <div class="val">${alert.consommation_kw.toFixed(2)} kW</div>
+              </div>
+              <div>
+                <div class="key">Voltage</div>
+                <div class="val">${alert.tension_v.toFixed(2)} V</div>
+              </div>
+              <div>
+                <div class="key">Current</div>
+                <div class="val">${alert.courant_a.toFixed(2)} A</div>
+              </div>
+              <div>
+                <div class="key">Alert Type</div>
+                <div class="val">${alert.alerte}</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+        
+        document.getElementById('alerts-container').innerHTML = alertsHtml;
+      } else {
+        document.getElementById('alerts-container').innerHTML = '<div class="no-data">No alerts yet...</div>';
+      }
+    }
+
+    // Initial fetch
+    fetchSmartMeterData();
+
+    // Refresh every 2 seconds
+    refreshInterval = setInterval(fetchSmartMeterData, 2000);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (refreshInterval) clearInterval(refreshInterval);
+    });
+  </script>
+</body>
+</html>

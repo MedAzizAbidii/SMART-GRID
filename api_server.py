@@ -676,13 +676,81 @@ async def packet_tracer_dashboard() -> FileResponse:
 
 @app.get("/blockchain-dashboard")
 async def blockchain_dashboard() -> FileResponse:
-    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "cyber_dashboard.html")
+    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "smart_meters_cyber.html")
+    return FileResponse(dashboard_path)
+
+
+@app.get("/smart-meters-dashboard")
+async def smart_meters_dashboard() -> FileResponse:
+    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "smart_meters_dashboard.html")
+    return FileResponse(dashboard_path)
+
+
+@app.get("/enhanced-detections")
+async def enhanced_detections_page() -> FileResponse:
+    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "enhanced_detections.html")
     return FileResponse(dashboard_path)
 
 
 @app.get("/api/smart-meters/status")
 async def get_smart_meter_status(limit: int = Query(default=8, ge=1, le=50)) -> Dict[str, Any]:
     return engine.smart_meter_status(limit=limit)
+
+
+@app.get("/api/smart-meters/enhanced-detections")
+async def get_enhanced_detections(limit: int = Query(default=20, ge=1, le=100)) -> Dict[str, Any]:
+    """Get detailed enhanced detection results with all criteria scores"""
+    enhanced_file = os.path.join(os.path.dirname(__file__), "enhanced_detection_results.csv")
+    
+    if not os.path.exists(enhanced_file):
+        return {
+            "status": "error",
+            "message": "Enhanced detection results file not found",
+            "detections": []
+        }
+    
+    try:
+        df = pd.read_csv(enhanced_file)
+        
+        # Get only anomalies, sorted by timestamp (most recent first)
+        anomalies = df[df['is_anomaly'] == 1].tail(limit)
+        
+        # Convert to list of dicts
+        detections = []
+        for _, row in anomalies.iterrows():
+            detections.append({
+                "timestamp": str(row['timestamp']),
+                "meter_id": str(row['meter_id']),
+                "zone": str(row['zone']),
+                "type": str(row['type']),
+                "consommation_kw": float(row['consommation_kw']),
+                "tension_v": float(row['tension_v']),
+                "courant_a": float(row['courant_a']),
+                "anomaly_type": str(row['anomaly_type']),
+                "confidence": float(row['confidence']),
+                "criteria": {
+                    "reconstruction": float(row['reconstruction_score']),
+                    "voltage": float(row['voltage_score']),
+                    "consumption": float(row['consumption_score']),
+                    "power_factor": float(row['power_factor_score']),
+                    "frequency": float(row['frequency_score']),
+                    "temporal": float(row['temporal_score']),
+                    "rate_change": float(row['rate_change_score'])
+                }
+            })
+        
+        return {
+            "status": "ok",
+            "total_anomalies": int(len(df[df['is_anomaly'] == 1])),
+            "returned": len(detections),
+            "detections": detections
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "detections": []
+        }
 
 
 @app.get("/api/grid/all")

@@ -1,0 +1,37 @@
+================================================================================
+ENHANCED ANOMALY DETECTION - EVALUATION REPORT
+================================================================================
+
+1. PERFORMANCE BY ANOMALY TYPE
+--------------------------------------------------------------------------------
+          type  count  detected  true_positives  false_positives  false_negatives  precision  recall  f1_score
+       OVERALL   1155        39               0               39                0        0.0     0.0       0.0
+       voltage     21        21               0               21                0        0.0     NaN       NaN
+reconstruction     11        11               0               11                0        0.0     NaN       NaN
+     frequency      4         4               0                4                0        0.0     NaN       NaN
+   rate_change      3         3               0                3                0        0.0     NaN       NaN
+
+2. DETECTION CRITERION CONTRIBUTION
+--------------------------------------------------------------------------------
+          criterion  mean_score  std_score  max_score  triggered_count  triggered_pct
+  ML Reconstruction    0.555490   0.182716        1.0              579      50.129870
+     Rate of Change    0.024201   0.139117        1.0               36       3.116883
+    Voltage Anomaly    0.022209   0.135182        1.0               26       2.251082
+Frequency Deviation    0.005547   0.069400        1.0                6       0.519481
+Consumption Anomaly    0.000000   0.000000        0.0                0       0.000000
+       Power Factor    0.000000   0.000000        0.0                0       0.000000
+   Temporal Pattern    0.000000   0.000000        0.0                0       0.000000
+
+3. SUMMARY STATISTICS
+--------------------------------------------------------------------------------
+Total samples: 1,155
+Detected anomalies: 39 (3.38%)
+True anomalies: 0 (0.00%)
+
+Confidence scores:
+  • Mean: 0.1176
+  • Std: 0.0490
+  • Min: 0.0518
+  • Max: 0.4246
+
+================================================================================

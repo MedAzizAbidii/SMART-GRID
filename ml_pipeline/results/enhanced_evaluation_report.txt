@@ -1,0 +1,37 @@
+================================================================================
+ENHANCED ANOMALY DETECTION - EVALUATION REPORT
+================================================================================
+
+1. PERFORMANCE BY ANOMALY TYPE
+--------------------------------------------------------------------------------
+          type  count  detected  true_positives  false_positives  false_negatives  precision  recall  f1_score
+       OVERALL  14454      2200            2197                3            12237   0.998636 0.15221  0.264158
+       voltage   1435      1435            1432                3                0   0.997909     NaN       NaN
+  power_factor     10        10              10                0                0   1.000000     NaN       NaN
+reconstruction    333       333             333                0                0   1.000000     NaN       NaN
+   consumption    422       422             422                0                0   1.000000     NaN       NaN
+
+2. DETECTION CRITERION CONTRIBUTION
+--------------------------------------------------------------------------------
+          criterion  mean_score  std_score  max_score  triggered_count  triggered_pct
+  ML Reconstruction    0.467416   0.221896      1.000             5175      35.803238
+    Voltage Anomaly    0.112668   0.298220      1.000             1856      12.840736
+Consumption Anomaly    0.045478   0.199036      1.000              721       4.988239
+       Power Factor    0.032143   0.111584      0.647              249       1.722707
+   Temporal Pattern    0.006351   0.061403      0.600              153       1.058531
+Frequency Deviation    0.000000   0.000000      0.000                0       0.000000
+     Rate of Change    0.000000   0.000000      0.000                0       0.000000
+
+3. SUMMARY STATISTICS
+--------------------------------------------------------------------------------
+Total samples: 14,454
+Detected anomalies: 2,200 (15.22%)
+True anomalies: 14,434 (99.86%)
+
+Confidence scores:
+  • Mean: 0.1283
+  • Std: 0.0890
+  • Min: 0.0300
+  • Max: 0.6068
+
+================================================================================

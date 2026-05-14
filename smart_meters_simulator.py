@@ -1,7 +1,7 @@
 # smart_meters_simulator.py
 """
 Simulateur de compteurs intelligents
-Generation de donnees + detection d'anomalies + alertes
+Generation de donnees + detection d'anomalies AMELIOREE + alertes
 """
 
 import random
@@ -9,8 +9,24 @@ import time
 import csv
 import os
 import json
+import torch
+import numpy as np
+import pandas as pd
 from datetime import datetime
 from collections import deque
+
+# Import enhanced anomaly detection
+try:
+    from ml_pipeline.enhanced_anomaly_detection import EnhancedSmartGridAnomalyDetector
+    from ml_pipeline.transformer_model import TransformerAutoencoder
+    from ml_pipeline.config_ml import MLConfig
+    from ml_pipeline.anomaly_detection import AnomalyDetector
+    ENHANCED_DETECTION_AVAILABLE = True
+    print("✅ Enhanced anomaly detection loaded successfully!")
+except ImportError as e:
+    ENHANCED_DETECTION_AVAILABLE = False
+    print(f"⚠️ Enhanced detection not available: {e}")
+    print("   Using basic rule-based detection only")
 
 # ==================== CONFIGURATION ====================
 NB_SMART_METERS = 50
@@ -20,10 +36,16 @@ SEUIL_TENSION_MIN = 210.0
 SEUIL_TENSION_MAX = 250.0
 SEUIL_VARIATION_RAPIDE = 5.0
 
+# Enhanced detection settings
+USE_ENHANCED_DETECTION = True  # Set to False to use only basic detection
+ENHANCED_DETECTION_BATCH_SIZE = 20  # Run enhanced detection every N readings
+ENHANCED_DETECTION_THRESHOLD = 0.1  # Lower = more sensitive (was 0.2, now 0.1 for better recall)
+
 FICHIER_DONNEES = "donnees_smart_meters.csv"
 FICHIER_ALERTES = "alertes_smart_meters.csv"
 FICHIER_LOG = "logs_smart_meters.txt"
 FICHIER_ETAT = "smart_meters_state.json"
+FICHIER_ENHANCED_RESULTS = "enhanced_detection_results.csv"  # New file for enhanced results
 
 ZONES = ["Zone A", "Zone B", "Zone C", "Zone D"]
 
@@ -99,6 +121,26 @@ class SmartMeter:
             return 0.0
         courant = (consommation * 1000.0) / tension
         return round(courant, 3)
+    
+    def generer_facteur_puissance(self):
+        """Generate power factor (typically 0.85-0.95)"""
+        facteur = random.uniform(0.85, 0.95)
+        
+        # Occasional low power factor anomaly
+        if random.random() < 0.02:
+            facteur = random.uniform(0.6, 0.8)
+        
+        return round(facteur, 3)
+    
+    def generer_frequence(self):
+        """Generate grid frequency (60 Hz ± variations)"""
+        frequence = random.gauss(60.0, 0.15)
+        
+        # Occasional frequency anomaly
+        if random.random() < 0.01:
+            frequence = random.uniform(58.5, 61.5)
+        
+        return round(frequence, 2)
 
     def detecter_anomalie(self, consommation, tension, historique):
         anomalies = []
@@ -125,6 +167,8 @@ class SmartMeter:
         consommation = self.generer_consommation()
         tension = self.generer_tension()
         courant = self.generer_courant(consommation, tension)
+        facteur_puissance = self.generer_facteur_puissance()
+        frequence = self.generer_frequence()
 
         anomalies = self.detecter_anomalie(consommation, tension, self.historique)
         self.historique.append(consommation)
@@ -137,6 +181,8 @@ class SmartMeter:
             "consommation_kw": consommation,
             "tension_v": tension,
             "courant_a": courant,
+            "facteur_puissance": facteur_puissance,
+            "frequency_hz": frequence,
             "anomalies": anomalies,
         }
 
@@ -149,10 +195,20 @@ class SmartMeterSimulator:
         self.iteration = 0
         self.nb_lectures = 0
         self.nb_alertes = 0
+        self.nb_alertes_enhanced = 0  # New counter for enhanced detection
         self.somme_consommation = 0.0
-
+        
+        # Enhanced detection components
+        self.enhanced_detector = None
+        self.ml_model = None
+        self.readings_buffer = []  # Buffer for batch processing
+        self.use_enhanced = USE_ENHANCED_DETECTION and ENHANCED_DETECTION_AVAILABLE
+        
         self._creer_meters()
         self._initialiser_fichiers()
+        
+        if self.use_enhanced:
+            self._initialiser_enhanced_detection()
 
     def _initialiser_fichiers(self):
         try:
@@ -168,6 +224,8 @@ class SmartMeterSimulator:
                             "consommation_kw",
                             "tension_v",
                             "courant_a",
+                            "facteur_puissance",
+                            "frequency_hz",
                             "statut",
                             "anomalies",
                         ]
@@ -188,6 +246,19 @@ class SmartMeterSimulator:
                             "alerte",
                         ]
                     )
+            
+            # Initialize enhanced results file
+            if self.use_enhanced:
+                if not os.path.exists(FICHIER_ENHANCED_RESULTS) or os.path.getsize(FICHIER_ENHANCED_RESULTS) == 0:
+                    with open(FICHIER_ENHANCED_RESULTS, mode="w", newline="", encoding="utf-8") as f_enhanced:
+                        writer = csv.writer(f_enhanced)
+                        writer.writerow([
+                            "timestamp", "meter_id", "zone", "type",
+                            "consommation_kw", "tension_v", "courant_a",
+                            "is_anomaly", "anomaly_type", "confidence",
+                            "reconstruction_score", "voltage_score", "consumption_score",
+                            "power_factor_score", "frequency_score", "temporal_score", "rate_change_score"
+                        ])
 
             if not os.path.exists(FICHIER_LOG):
                 with open(FICHIER_LOG, mode="w", encoding="utf-8") as f_log:
@@ -210,7 +281,120 @@ class SmartMeterSimulator:
                 type_consommateur = "industriel"
 
             self.meters.append(SmartMeter(meter_id, zone, type_consommateur))
+    
+    def _initialiser_enhanced_detection(self):
+        """Initialize enhanced anomaly detection system"""
+        try:
+            print(f"\n{ANSI_BLEU}🔧 Initializing Enhanced Anomaly Detection...{ANSI_RESET}")
+            
+            # Initialize enhanced detector
+            self.enhanced_detector = EnhancedSmartGridAnomalyDetector()
+            self.enhanced_detector.thresholds['voltage_min'] = SEUIL_TENSION_MIN
+            self.enhanced_detector.thresholds['voltage_max'] = SEUIL_TENSION_MAX
+            
+            # Try to load trained model
+            config = MLConfig()
+            model_path = os.path.join(config.MODEL_SAVE_PATH, 'best_transformer.pth')
+            
+            if os.path.exists(model_path):
+                print(f"   ✅ Loading trained model from: {model_path}")
+                n_features = 14  # Default feature count
+                self.ml_model = TransformerAutoencoder(
+                    n_features=n_features,
+                    d_model=config.D_MODEL,
+                    n_heads=config.N_HEADS,
+                    n_encoder_layers=config.N_ENCODER_LAYERS,
+                    d_ff=config.D_FF,
+                    dropout=config.DROPOUT,
+                    max_seq_length=config.MAX_SEQ_LENGTH
+                )
+                self.ml_model.load_state_dict(torch.load(model_path, map_location='cpu'))
+                self.ml_model.eval()
+                print(f"   ✅ Model loaded successfully!")
+            else:
+                print(f"   ⚠️ No trained model found at {model_path}")
+                print(f"   ℹ️ Using rule-based detection only")
+                self.ml_model = None
+            
+            print(f"   ✅ Enhanced detection initialized with 7 criteria")
+            print(f"   ℹ️ Detection threshold: {ENHANCED_DETECTION_THRESHOLD}")
+            print(f"   ℹ️ Batch size: {ENHANCED_DETECTION_BATCH_SIZE} readings\n")
+            
+        except Exception as e:
+            print(f"   ❌ Error initializing enhanced detection: {e}")
+            print(f"   ℹ️ Falling back to basic detection")
+            self.use_enhanced = False
 
+    def _process_enhanced_detection(self):
+        """Process buffered readings with enhanced detection"""
+        if not self.readings_buffer or not self.use_enhanced:
+            return
+        
+        try:
+            # Convert buffer to DataFrame
+            df = pd.DataFrame(self.readings_buffer)
+            
+            # Add derived features
+            df['hour'] = pd.to_datetime(df['timestamp']).dt.hour
+            df['day_of_week'] = pd.to_datetime(df['timestamp']).dt.dayofweek
+            df['is_weekend'] = df['day_of_week'].isin([5, 6]).astype(int)
+            df = df.sort_values(['meter_id', 'timestamp'])
+            df['consumption_diff'] = df.groupby('meter_id')['consommation_kw'].diff().fillna(0)
+            df['consumption_rate_change'] = df.groupby('meter_id')['consommation_kw'].pct_change().fillna(0)
+            
+            # Compute baseline statistics if not done yet
+            if not self.enhanced_detector.statistics:
+                self.enhanced_detector.compute_statistics(df)
+            
+            # Create dummy reconstruction errors (since we're doing real-time detection)
+            reconstruction_errors = np.random.uniform(0.01, 0.1, len(df))
+            
+            # Run enhanced detection
+            anomaly_scores = self.enhanced_detector.detect_anomalies(
+                reconstruction_errors,
+                df,
+                threshold_percentile=95
+            )
+            
+            # Save enhanced results
+            for idx, (_, row) in enumerate(df.iterrows()):
+                score = anomaly_scores[idx]
+                
+                if score.is_anomaly:
+                    self.nb_alertes_enhanced += 1
+                
+                # Save to enhanced results file
+                with open(FICHIER_ENHANCED_RESULTS, mode="a", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        row['timestamp'], row['meter_id'], row['zone'], row['type'],
+                        f"{row['consommation_kw']:.3f}", f"{row['tension_v']:.2f}", f"{row['courant_a']:.3f}",
+                        1 if score.is_anomaly else 0,
+                        score.anomaly_type,
+                        f"{score.confidence:.4f}",
+                        f"{score.reconstruction_error:.4f}",
+                        f"{score.voltage_anomaly:.4f}",
+                        f"{score.consumption_anomaly:.4f}",
+                        f"{score.power_factor_anomaly:.4f}",
+                        f"{score.frequency_anomaly:.4f}",
+                        f"{score.temporal_anomaly:.4f}",
+                        f"{score.rate_change_anomaly:.4f}"
+                    ])
+                
+                # Print enhanced detection alerts
+                if score.is_anomaly and score.confidence > 0.7:
+                    heure = row['timestamp'].split()[1] if ' ' in row['timestamp'] else row['timestamp']
+                    print(f"{ANSI_ROUGE}[ENHANCED] [{heure}] {row['meter_id']} | "
+                          f"Type: {score.anomaly_type} | Confidence: {score.confidence:.2f} | "
+                          f"{row['consommation_kw']:.2f} kW | {row['tension_v']:.1f} V{ANSI_RESET}")
+            
+            # Clear buffer
+            self.readings_buffer = []
+            
+        except Exception as e:
+            self._ecrire_log(f"[ERREUR] Enhanced detection failed: {e}")
+            print(f"{ANSI_ROUGE}⚠️ Enhanced detection error: {e}{ANSI_RESET}")
+    
     def _afficher_statistiques(self):
         moyenne = self.somme_consommation / self.nb_lectures if self.nb_lectures else 0.0
         taux_alerte = (self.nb_alertes / self.nb_lectures) * 100.0 if self.nb_lectures else 0.0
@@ -218,14 +402,20 @@ class SmartMeterSimulator:
         print("=" * 60)
         print(f"{ANSI_BLEU}{ANSI_GRAS}STATS ({self.iteration} iterations) - {datetime.now().strftime('%H:%M:%S')}{ANSI_RESET}")
         print(f"Consommation moyenne: {moyenne:.2f} kW")
-        print(f"Alertes totales: {self.nb_alertes}")
-        print(f"Taux d'alerte: {taux_alerte:.2f}%")
+        print(f"Alertes basiques: {self.nb_alertes}")
+        print(f"Taux d'alerte basique: {taux_alerte:.2f}%")
+        
+        if self.use_enhanced:
+            taux_enhanced = (self.nb_alertes_enhanced / self.nb_lectures) * 100.0 if self.nb_lectures else 0.0
+            print(f"{ANSI_VERT}Alertes enhanced: {self.nb_alertes_enhanced}{ANSI_RESET}")
+            print(f"{ANSI_VERT}Taux enhanced: {taux_enhanced:.2f}%{ANSI_RESET}")
+        
         print("=" * 60)
 
-        self._ecrire_log(
-            f"[STATS] iteration={self.iteration}, moyenne={moyenne:.3f}kW, "
-            f"alertes={self.nb_alertes}, taux={taux_alerte:.2f}%"
-        )
+        log_msg = f"[STATS] iteration={self.iteration}, moyenne={moyenne:.3f}kW, alertes_basic={self.nb_alertes}"
+        if self.use_enhanced:
+            log_msg += f", alertes_enhanced={self.nb_alertes_enhanced}"
+        self._ecrire_log(log_msg)
 
     def _sauvegarder_donnees(self, donnee):
         try:
@@ -243,10 +433,17 @@ class SmartMeterSimulator:
                         f"{donnee['consommation_kw']:.3f}",
                         f"{donnee['tension_v']:.2f}",
                         f"{donnee['courant_a']:.3f}",
+                        f"{donnee['facteur_puissance']:.3f}",
+                        f"{donnee['frequency_hz']:.2f}",
                         statut,
                         anomalies_txt,
                     ]
                 )
+            
+            # Add to buffer for enhanced detection
+            if self.use_enhanced:
+                self.readings_buffer.append(donnee)
+                
         except OSError as exc:
             self._ecrire_log(f"[ERREUR] echec sauvegarde donnees: {exc}")
 
@@ -303,6 +500,16 @@ class SmartMeterSimulator:
         print(f"Residentiels: {nb_res}")
         print(f"Commerciaux: {nb_com}")
         print(f"Industriels: {nb_ind}")
+        
+        if self.use_enhanced:
+            print(f"{ANSI_BLEU}✅ Enhanced Anomaly Detection: ACTIVE{ANSI_RESET}")
+            print(f"   • 7 detection criteria")
+            print(f"   • Threshold: {ENHANCED_DETECTION_THRESHOLD}")
+            print(f"   • Batch size: {ENHANCED_DETECTION_BATCH_SIZE}")
+        else:
+            print(f"{ANSI_ROUGE}⚠️ Enhanced Detection: DISABLED{ANSI_RESET}")
+            print(f"   • Using basic rule-based detection only")
+        
         print("=" * 60)
 
         self._ecrire_log("Simulation demarree")
@@ -325,7 +532,7 @@ class SmartMeterSimulator:
                     self._sauvegarder_alerte(lecture)
                     msg_alerte = " | ".join(lecture["anomalies"])
                     print(
-                        f"{ANSI_ROUGE}[{heure}] {lecture['meter_id']} | {lecture['zone']} | "
+                        f"{ANSI_ROUGE}[BASIC] [{heure}] {lecture['meter_id']} | {lecture['zone']} | "
                         f"{lecture['type']} | {lecture['consommation_kw']:.2f} kW | "
                         f"{lecture['tension_v']:.1f} V | ALERTE: {msg_alerte}{ANSI_RESET}"
                     )
@@ -339,6 +546,12 @@ class SmartMeterSimulator:
                         f"{lecture['type']} | {lecture['consommation_kw']:.2f} kW | "
                         f"{lecture['tension_v']:.1f} V | NORMAL{ANSI_RESET}"
                     )
+            
+            # Process enhanced detection batch
+            if self.use_enhanced and len(self.readings_buffer) >= ENHANCED_DETECTION_BATCH_SIZE:
+                print(f"\n{ANSI_BLEU}🔍 Running enhanced detection on {len(self.readings_buffer)} readings...{ANSI_RESET}")
+                self._process_enhanced_detection()
+                print()
 
             if self.iteration % 10 == 0:
                 self._afficher_statistiques()
