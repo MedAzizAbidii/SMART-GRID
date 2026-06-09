@@ -1,1 +1,1 @@
-# ML Pipeline for Smart Grid Anomaly Detection with XAI
+"""ML pipeline for smart-grid anomaly detection with Transformer Autoencoder XAI."""

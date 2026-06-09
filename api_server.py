@@ -692,6 +692,36 @@ async def enhanced_detections_page() -> FileResponse:
     return FileResponse(dashboard_path)
 
 
+@app.get("/model-test-dashboard")
+async def model_test_dashboard() -> FileResponse:
+    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "model_test_dashboard.html")
+    return FileResponse(dashboard_path)
+
+
+@app.get("/api/model-test/summary")
+async def model_test_summary() -> JSONResponse:
+    report_path = os.path.join(os.path.dirname(__file__), "outputs", "model_improvement_analysis", "model_improvement_report.json")
+    if not os.path.exists(report_path):
+        return JSONResponse({"error": "Run analyze_model_improvements.py first."}, status_code=404)
+    with open(report_path, "r", encoding="utf-8") as handle:
+        return JSONResponse(json.load(handle))
+
+
+@app.get("/api/model-test/report")
+async def model_test_report() -> FileResponse:
+    report_path = os.path.join(os.path.dirname(__file__), "outputs", "model_improvement_analysis", "model_improvement_report.json")
+    return FileResponse(report_path, media_type="application/json")
+
+
+@app.get("/model-test/assets/{filename}")
+async def model_test_asset(filename: str) -> FileResponse:
+    safe_name = os.path.basename(filename)
+    asset_path = os.path.join(os.path.dirname(__file__), "outputs", "model_improvement_analysis", safe_name)
+    if not os.path.exists(asset_path):
+        return JSONResponse({"error": f"Asset not found: {safe_name}"}, status_code=404)
+    return FileResponse(asset_path)
+
+
 @app.get("/api/smart-meters/status")
 async def get_smart_meter_status(limit: int = Query(default=8, ge=1, le=50)) -> Dict[str, Any]:
     return engine.smart_meter_status(limit=limit)

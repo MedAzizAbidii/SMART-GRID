@@ -11,12 +11,18 @@ __pycache__/
 # Virtual environments
 venv/
 venv64/
+.venv/
 .env
 
 # Data and outputs
 data/
 images/
 SMARTGRID_PRIVATE/
+outputs/
+data_generation/assetes/
+*.log
+*.out.log
+*.err.log
 
 # Private smart-meter inputs and logs at repo root
 donnees_smart_meters.csv

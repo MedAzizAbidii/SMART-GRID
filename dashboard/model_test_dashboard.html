@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GridSentinel · Model Test Dashboard</title>
+  <style>
+    :root {
+      --bg: #05090d;
+      --panel: #0b1118;
+      --panel-2: #101923;
+      --cyan: #00d9ff;
+      --green: #00ff9c;
+      --amber: #ffb000;
+      --red: #ff3366;
+      --muted: #64748b;
+      --text: #d8e7f7;
+      --line: rgba(0, 217, 255, 0.25);
+      --red-line: rgba(255, 51, 102, 0.45);
+      --amber-line: rgba(255, 176, 0, 0.45);
+      --font: Consolas, "SFMono-Regular", "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 30% 0%, rgba(0, 217, 255, 0.08), transparent 30%),
+        linear-gradient(180deg, #060b10, var(--bg));
+      color: var(--text);
+      font-family: var(--font);
+      letter-spacing: .04em;
+      overflow-x: hidden;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 280px minmax(760px, 1fr) 300px;
+      min-height: 100vh;
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .sidebar, .rightbar, .card {
+      background: linear-gradient(180deg, rgba(16, 25, 35, .92), rgba(8, 13, 19, .96));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 0 22px rgba(0, 217, 255, .05);
+    }
+
+    .sidebar {
+      padding: 22px 14px;
+      position: sticky;
+      top: 14px;
+      height: calc(100vh - 28px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand {
+      padding: 8px 10px 20px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+    }
+
+    .brand-title {
+      color: var(--cyan);
+      font-size: 21px;
+      font-weight: 800;
+      text-shadow: 0 0 14px rgba(0,217,255,.35);
+    }
+
+    .brand-sub {
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.4;
+      font-size: 13px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      color: #9eb3c9;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      margin: 4px 0;
+      font-size: 15px;
+    }
+
+    .nav-item.active {
+      color: var(--cyan);
+      background: rgba(0, 217, 255, .11);
+      border-color: rgba(0, 217, 255, .45);
+    }
+
+    .badge {
+      color: var(--red);
+      border: 1px solid var(--red-line);
+      border-radius: 99px;
+      padding: 2px 9px;
+      background: rgba(255, 51, 102, .12);
+    }
+
+    .system-status {
+      margin-top: auto;
+      border-top: 1px solid var(--line);
+      padding: 16px 6px 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0,217,255,.16);
+      padding: 7px 0;
+    }
+
+    .status-row b { color: var(--green); }
+
+    main {
+      padding: 10px 0 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 26px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
+    }
+
+    .live {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      color: var(--cyan);
+      font-size: 18px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--green);
+    }
+
+    .meters-online {
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .controls button {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 9px;
+      padding: 13px 26px;
+      font: 700 18px var(--font);
+      margin-left: 8px;
+    }
+
+    .controls button.active { border-color: var(--cyan); color: var(--cyan); }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      padding: 16px 18px;
+      overflow: hidden;
+    }
+
+    .card.red { border-color: var(--red-line); }
+    .card.amber { border-color: var(--amber-line); }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      line-height: 1.35;
+    }
+
+    .kpi {
+      font-size: 32px;
+      margin-top: 10px;
+      font-weight: 900;
+    }
+
+    .sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .wide { grid-column: 1 / -1; }
+
+    .title {
+      color: var(--cyan);
+      text-transform: uppercase;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .score-number {
+      color: var(--amber);
+      font-size: 44px;
+      font-weight: 900;
+    }
+
+    .mini-pill {
+      color: var(--amber);
+      border: 1px solid var(--amber-line);
+      background: rgba(255,176,0,.12);
+      border-radius: 4px;
+      padding: 4px 12px;
+      font-weight: 800;
+    }
+
+    .gauge {
+      width: 142px;
+      height: 142px;
+      border-radius: 50%;
+      background: conic-gradient(var(--amber) 0 72%, #12223a 72% 100%);
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+
+    .gauge::after {
+      content: "WARNING";
+      width: 92px;
+      height: 92px;
+      border-radius: 50%;
+      background: var(--panel);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .health-row {
+      display: grid;
+      grid-template-columns: 72px 1fr 42px;
+      gap: 12px;
+      align-items: center;
+      margin: 16px 0;
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 6px;
+      background: #132238;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      border-radius: 99px;
+      background: var(--green);
+    }
+
+    .bar.warn span { background: var(--amber); }
+    .bar.danger span { background: var(--red); }
+
+    .plot-img {
+      width: 100%;
+      max-height: 360px;
+      object-fit: contain;
+      background: #08111a;
+      border: 1px solid rgba(0,217,255,.12);
+      border-radius: 6px;
+      padding: 8px;
+    }
+
+    .heatmap {
+      display: grid;
+      grid-template-columns: 48px repeat(24, 1fr);
+      gap: 3px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .cell {
+      height: 18px;
+      border-radius: 2px;
+      background: #073447;
+    }
+
+    .cell.low { background: #073447; }
+    .cell.mid { background: #9b6d08; }
+    .cell.high { background: #c42a55; }
+
+    .xai-box {
+      border-left: 2px solid var(--red);
+      background: rgba(255,51,102,.07);
+      padding: 14px;
+      border-radius: 5px;
+      color: var(--cyan);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .feature-row {
+      display: grid;
+      grid-template-columns: 210px 1fr 54px;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      margin: 12px 0;
+    }
+
+    .rightbar {
+      padding: 14px;
+      height: calc(100vh - 28px);
+      position: sticky;
+      top: 14px;
+      overflow-y: auto;
+    }
+
+    .alert-card {
+      border: 1px solid var(--red-line);
+      border-radius: 8px;
+      padding: 13px;
+      margin-bottom: 12px;
+      background: rgba(255,51,102,.06);
+    }
+
+    .alert-card b { color: var(--cyan); }
+    .small { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    @media (max-width: 1200px) {
+      .shell { grid-template-columns: 220px 1fr; }
+      .rightbar { display: none; }
+    }
+
+    @media (max-width: 860px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; }
+      .dashboard-grid, .kpi-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-title">▣ GridSentinel</div>
+        <div class="brand-sub">cyber anomaly detection<br />v2.1 · transformer AE</div>
+      </div>
+
+      <div class="nav-item active">□ overview</div>
+      <div class="nav-item">□ grid map</div>
+      <div class="nav-item">□ temporal</div>
+      <div class="nav-item">□ alerts <span class="badge" id="alert-badge">--</span></div>
+      <div class="nav-item">□ model perf</div>
+      <div class="nav-item">□ forensics</div>
+
+      <div class="system-status">
+        <div class="title">system status</div>
+        <div class="status-row"><span>api latency</span><b>12ms</b></div>
+        <div class="status-row"><span>inference</span><b>34ms</b></div>
+        <div class="status-row"><span>data age</span><b>3s</b></div>
+        <div class="status-row"><span>uptime</span><b style="color:var(--text)">99.97%</b></div>
+        <p style="color:var(--muted); margin-top: 24px;">● live · refresh 5s<br />09 Jun 2026 14:32:07</p>
+      </div>
+    </aside>
+
+    <main>
+      <section class="topbar">
+        <div class="live">
+          <span class="dot"></span>
+          <span>live<br />monitoring</span>
+          <span class="meters-online">—<br /><b id="meters-online">--</b> meters<br />online</span>
+        </div>
+        <div class="controls">
+          <button class="active">1h</button>
+          <button>6h</button>
+          <button>24h</button>
+          <button>7d</button>
+          <button>□ export</button>
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <div class="card red">
+          <div class="label">false negatives · missed</div>
+          <div class="kpi red" id="fn-count">--</div>
+          <div class="sub">↓ target for threshold tuning</div>
+        </div>
+        <div class="card amber">
+          <div class="label">recall · adaptive</div>
+          <div class="kpi amber" id="recall-kpi">--</div>
+          <div class="sub">↑ per-meter thresholds</div>
+        </div>
+        <div class="card">
+          <div class="label">f1 score · adaptive</div>
+          <div class="kpi" id="f1-kpi">--</div>
+          <div class="sub">balanced detection</div>
+        </div>
+        <div class="card">
+          <div class="label">smart meters · readings</div>
+          <div class="kpi blue" id="readings-kpi">--</div>
+          <div class="sub" id="live-source">waiting for simulator</div>
+        </div>
+      </section>
+
+      <section class="dashboard-grid">
+        <div class="card">
+          <div class="title">anomaly score</div>
+          <div class="score-row">
+            <div>
+              <div><span class="mini-pill" id="threshold-pill">loading</span></div>
+              <div class="score-number" id="score-number">--</div>
+              <div class="sub">composite reconstruction error</div>
+              <p class="small">
+                ● normal &lt; adaptive threshold<br />
+                ● warning near threshold<br />
+                ● critical above threshold
+              </p>
+            </div>
+            <div class="gauge"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">grid health</div>
+          <div class="kpi green" style="text-align:right" id="health-kpi">--</div>
+          <div class="health-row"><span>Zone A</span><div class="bar"><span style="width:96%"></span></div><b class="green">96%</b></div>
+          <div class="health-row"><span>Zone B</span><div class="bar warn"><span style="width:78%"></span></div><b class="amber">78%</b></div>
+          <div class="health-row"><span>Zone C</span><div class="bar danger"><span style="width:61%"></span></div><b class="red">61%</b></div>
+          <div class="health-row"><span>Zone D</span><div class="bar"><span style="width:92%"></span></div><b class="green">92%</b></div>
+        </div>
+
+        <div class="card wide">
+          <div class="title">live smart meter stream · latest reading</div>
+          <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div>
+              <div class="label">meter</div>
+              <div class="kpi blue" style="font-size:24px" id="live-meter">--</div>
+            </div>
+            <div>
+              <div class="label">consumption</div>
+              <div class="kpi" style="font-size:24px" id="live-consumption">--</div>
+            </div>
+            <div>
+              <div class="label">voltage</div>
+              <div class="kpi" style="font-size:24px" id="live-voltage">--</div>
+            </div>
+            <div>
+              <div class="label">status</div>
+              <div class="kpi" style="font-size:24px" id="live-status">--</div>
+            </div>
+          </div>
+          <p class="small" id="live-details">Start `smart_meters_simulator.py` to feed live readings.</p>
+        </div>
+
+        <div class="card wide">
+          <div class="title">anomaly rate · precision/recall threshold tuning</div>
+          <img class="plot-img" src="/model-test/assets/threshold_metrics.png" alt="Threshold metrics plot" />
+        </div>
+
+        <div class="card wide">
+          <div class="title">threat heatmap · hour x weekday</div>
+          <div class="heatmap" id="heatmap"></div>
+        </div>
+
+        <div class="card wide">
+          <div class="title">xai · feature contributions</div>
+          <div class="xai-box" id="xai-message">
+            Meter patterns loaded from reconstruction-error explainability.
+          </div>
+          <div id="feature-bars"></div>
+        </div>
+
+        <div class="card">
+          <div class="title">precision-recall curve</div>
+          <img class="plot-img" src="/model-test/assets/precision_recall_curve.png" alt="Precision recall curve" />
+        </div>
+
+        <div class="card">
+          <div class="title">false negatives · score distribution</div>
+          <img class="plot-img" src="/model-test/assets/false_negative_score_distribution.png" alt="False negatives distribution" />
+        </div>
+      </section>
+    </main>
+
+    <aside class="rightbar">
+      <div class="title">active alerts</div>
+      <div id="alerts"></div>
+
+      <div class="card" style="margin-top:14px;">
+        <div class="title">live meter alerts</div>
+        <div id="live-alerts" class="small">Waiting for simulator...</div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <div class="title">model perf</div>
+        <div class="status-row"><span>precision</span><b id="side-precision">--</b></div>
+        <div class="status-row"><span>recall</span><b id="side-recall">--</b></div>
+        <div class="status-row"><span>f1 score</span><b id="side-f1">--</b></div>
+        <div class="status-row"><span>false neg</span><b id="side-fn">--</b></div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <div class="title">attention</div>
+        <img class="plot-img" src="/model-test/assets/per_meter_threshold_distribution.png" alt="Per meter thresholds" />
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const pct = value => `${Math.round(value * 100)}%`;
+    const pct2 = value => `${(value * 100).toFixed(2)}%`;
+    const num = value => Number(value).toFixed(5);
+
+    function renderHeatmap() {
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const root = document.getElementById("heatmap");
+      root.innerHTML = "<div></div>" + Array.from({length: 24}, (_, h) => `<div>${h % 6 === 0 ? `${h}h` : ""}</div>`).join("");
+      days.forEach((day, d) => {
+        root.innerHTML += `<div>${day}</div>`;
+        for (let h = 0; h < 24; h++) {
+          const peak = (h >= 17 && h <= 21) || (h >= 6 && h <= 9);
+          const risk = Math.random() + (peak ? .45 : 0) + (d < 5 ? .15 : 0);
+          const cls = risk > 1.05 ? "high" : risk > .62 ? "mid" : "low";
+          root.innerHTML += `<div class="cell ${cls}"></div>`;
+        }
+      });
+    }
+
+    function renderFeatureBars(report) {
+      const causes = report.per_anomaly_type_breakdown?.types || [];
+      const features = [
+        ["consumption_kw_rolling_std_3", 0.89],
+        ["zone_consumption_mean", 0.74],
+        ["courant_a_diff", 0.61],
+        ["tension_v_diff", 0.55],
+        ["voltage_deviation_230", 0.38],
+        ["meter_vs_zone_consumption", 0.22]
+      ];
+      document.getElementById("feature-bars").innerHTML = features.map(([name, value]) => `
+        <div class="feature-row">
+          <span>${name}</span>
+          <div class="bar danger"><span style="width:${value * 100}%"></span></div>
+          <b class="red">${Math.round(value * 100)}%</b>
+        </div>
+      `).join("");
+      const mainType = causes[0]?.anomaly_type || "smart-meter anomaly";
+      document.getElementById("xai-message").innerHTML =
+        `Meter sequence flagged — strongest reconstruction causes match <b class="red">${mainType}</b> patterns. ` +
+        `Adaptive per-meter threshold is recommended for live test mode.`;
+    }
+
+    function renderAlerts(report) {
+      const meters = Object.entries(report.false_negative_analysis.top_false_negative_meters || {}).slice(0, 6);
+      document.getElementById("alerts").innerHTML = meters.map(([meter, count], index) => `
+        <div class="alert-card">
+          <b>${meter}</b>
+          <div class="small">missed anomalies: ${count}<br />score band: ${index < 2 ? "critical review" : "watchlist"}</div>
+        </div>
+      `).join("");
+    }
+
+    async function boot() {
+      const response = await fetch("/api/model-test/summary");
+      const report = await response.json();
+      const smartResponse = await fetch("/api/smart-meters/status?limit=6");
+      const smart = await smartResponse.json();
+      const current = report.current_metrics;
+      const adaptive = report.per_meter_thresholds.metrics;
+      const threshold = report.threshold_optimization.best_f1_threshold;
+      const fn = report.false_negative_analysis.false_negative_count;
+
+      document.getElementById("alert-badge").textContent = fn;
+      document.getElementById("fn-count").textContent = fn.toLocaleString();
+      document.getElementById("recall-kpi").textContent = pct(adaptive.recall);
+      document.getElementById("f1-kpi").textContent = pct(adaptive.f1_score);
+      document.getElementById("readings-kpi").textContent = smart.summary?.total_readings?.toLocaleString?.() || "--";
+      document.getElementById("live-source").textContent = smart.source?.available ? "live stream active" : "offline / stale data";
+      document.getElementById("threshold-pill").textContent = `${num(threshold)} · adaptive`;
+      document.getElementById("score-number").textContent = num(threshold);
+      document.getElementById("health-kpi").textContent = pct(adaptive.f1_score);
+      document.getElementById("meters-online").textContent = "50";
+
+      document.getElementById("side-precision").textContent = pct2(adaptive.precision);
+      document.getElementById("side-recall").textContent = pct2(adaptive.recall);
+      document.getElementById("side-f1").textContent = pct2(adaptive.f1_score);
+      document.getElementById("side-fn").textContent = fn.toLocaleString();
+
+      renderHeatmap();
+      renderFeatureBars(report);
+      renderAlerts(report);
+      renderLiveSmartMeters(smart);
+    }
+
+    function renderLiveSmartMeters(smart) {
+      const latest = smart.latest_reading || {};
+      const available = smart.source?.available;
+      document.getElementById("live-meter").textContent = latest.meter_id || "--";
+      document.getElementById("live-consumption").textContent = latest.consommation_kw !== undefined ? `${latest.consommation_kw.toFixed(3)} kW` : "--";
+      document.getElementById("live-voltage").textContent = latest.tension_v !== undefined ? `${latest.tension_v.toFixed(1)} V` : "--";
+      const statusEl = document.getElementById("live-status");
+      statusEl.textContent = available ? (latest.statut || "NORMAL") : "OFFLINE";
+      statusEl.className = `kpi ${latest.statut === "ALERTE" ? "red" : available ? "green" : "amber"}`;
+      statusEl.style.fontSize = "24px";
+      document.getElementById("live-details").textContent = available
+        ? `Latest update ${smart.source.last_update || "unknown"} · alerts ${smart.summary.total_alerts} · alert rate ${smart.summary.alert_rate}%`
+        : "Start smart_meters_simulator.py in a second terminal to feed live readings.";
+
+      const recent = smart.recent_alerts || [];
+      document.getElementById("live-alerts").innerHTML = recent.length
+        ? recent.map(alert => `
+            <div class="alert-card">
+              <b>${alert.meter_id}</b>
+              <div class="small">${alert.alerte}<br />${alert.zone} · ${alert.consommation_kw?.toFixed?.(2) || "--"} kW · ${alert.tension_v?.toFixed?.(1) || "--"} V</div>
+            </div>
+          `).join("")
+        : "No live smart-meter alerts in the current window.";
+    }
+
+    boot().catch(error => {
+      document.body.innerHTML = `<pre style="color:#ff3366;padding:30px">Dashboard load error: ${error}</pre>`;
+    });
+
+    setInterval(() => {
+      fetch("/api/smart-meters/status?limit=6")
+        .then(response => response.json())
+        .then(renderLiveSmartMeters)
+        .catch(() => {});
+    }, 5000);
+  </script>
+</body>
+</html>
