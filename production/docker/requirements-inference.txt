@@ -1,0 +1,10 @@
+# Minimal dependency set for the standalone AI inference microservice.
+# Deliberately excludes pypowsybl/seaborn/shap/matplotlib (grid-simulation and
+# XAI-plotting deps the inference path never touches) to keep this image small.
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+torch>=2.2.0
+fastapi>=0.110.0
+uvicorn>=0.29.0
+pydantic-settings>=2.4.0

@@ -30,6 +30,10 @@ alertes_smart_meters.csv
 logs_smart_meters.txt
 smart_meters_state.json
 
+# Secrets: user password hashes and PoA authority private keys — never commit
+smartgrid_simulation/production/security/users.json
+smartgrid_simulation/production/security/authority_keys.json
+
 # IDE
 .vscode/
 .idea/
@@ -37,3 +41,7 @@ smart_meters_state.json
 # OS
 .DS_Store
 Thumbs.db
+.coverage
+
+# Regenerable cache artifacts (large, reproducible from source data)
+realdata/results/_cache/

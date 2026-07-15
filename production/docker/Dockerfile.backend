@@ -1,0 +1,51 @@
+# Dockerfile.backend — FastAPI backend (api_server.py).
+#
+# By default runs the AI model IN-PROCESS (get_detector()), exactly as before
+# Phase 6 — no behavior change for a standalone container. Set
+# SGRID_INFERENCE_SERVICE_URL=http://inference:8100 (as docker-compose.yml
+# does) to instead proxy /api/detect to the separate inference container.
+#
+# Build (from smartgrid_simulation/):
+#   docker build -f production/docker/Dockerfile.backend -t smartgrid-backend:1.0.0 .
+# Run standalone (in-process model, needs outputs/ + data/ mounted):
+#   docker run -p 8000:8000 -v $(pwd)/../data:/data smartgrid-backend:1.0.0
+
+FROM python:3.10-slim AS base
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt ./requirements.txt
+# pypowsybl/seaborn/shap are heavy and only used by offline analysis scripts,
+# not the runtime API path; installed anyway for parity with the dev venv so
+# any endpoint that happens to import them at runtime still works unmodified.
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY api_server.py config.py ./
+COPY ml_pipeline/ ./ml_pipeline/
+COPY blockchain/ ./blockchain/
+COPY dashboard/ ./dashboard/
+COPY production/ ./production/
+COPY outputs/early_stopping_final/ ./outputs/early_stopping_final/
+COPY outputs/test_run_now/ ./outputs/test_run_now/
+
+# Non-root runtime user (a container running as root is an unnecessary
+# privilege-escalation surface if the app is ever compromised).
+RUN useradd --create-home --shell /bin/bash appuser \
+    && mkdir -p /app/logs /data \
+    && chown -R appuser:appuser /app /data
+USER appuser
+
+ENV PYTHONUNBUFFERED=1 \
+    SGRID_ENVIRONMENT=production \
+    SGRID_LOG_DIR=/app/logs
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=3).status==200 else 1)"
+
+CMD ["python", "-m", "uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000"]

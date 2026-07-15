@@ -1,0 +1,18 @@
+{
+  "n_consumers": 42372,
+  "n_days": 1034,
+  "theft": 3615,
+  "normal": 38757,
+  "theft_rate_pct": 8.53,
+  "missing_pct_overall": 25.64,
+  "per_consumer_missing_median_pct": 10.64,
+  "per_consumer_missing_mean_pct": 25.64,
+  "consumers_over_50pct_missing": 11184,
+  "date_span": [
+    "2014-01-01",
+    "2016-10-31"
+  ],
+  "date_cols_chronological_as_given": false,
+  "melt_wide_to_long_verified": true,
+  "melt_example_rows": 5170
+}

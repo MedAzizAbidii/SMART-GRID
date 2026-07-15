@@ -1,0 +1,24 @@
+{
+  "_comment": "Unified benchmark configuration. All models run on the SAME leak-free split from run_transformer_autoencoder.prepare_split_sequences (scaler fit on train, threshold tuned on val, metrics on untouched test).",
+  "data": "../data/scenario_test/donnees_smart_meters.csv",
+  "seq_len": 8,
+  "val_frac": 0.15,
+  "test_frac": 0.15,
+  "seed": 42,
+  "bootstrap_iters": 1000,
+  "threshold_strategy": "f1_on_val",
+  "models": [
+    "isolation_forest",
+    "one_class_svm",
+    "random_forest",
+    "xgboost",
+    "lightgbm",
+    "lstm_autoencoder",
+    "transformer_autoencoder"
+  ],
+  "deep": {
+    "model_dim": 128, "heads": 4, "layers": 3, "ff_dim": 256,
+    "pretrain_epochs": 20, "finetune_epochs": 2, "lr": 0.0005,
+    "batch_size": 128, "patience": 5
+  }
+}

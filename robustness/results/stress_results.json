@@ -1,0 +1,50 @@
+[
+  {
+    "target": 100000,
+    "processed": 100000,
+    "completed": true,
+    "elapsed_s": 8.91,
+    "throughput_seq_per_s": 11221.0,
+    "latency_ms_per_seq_mean": 0.07608,
+    "peak_traced_mb": 217.88,
+    "rss_delta_mb": 79.57,
+    "failed": false,
+    "stop_reason": "completed"
+  },
+  {
+    "target": 500000,
+    "processed": 500000,
+    "completed": true,
+    "elapsed_s": 44.66,
+    "throughput_seq_per_s": 11194.7,
+    "latency_ms_per_seq_mean": 0.07577,
+    "peak_traced_mb": 217.91,
+    "rss_delta_mb": 54.08,
+    "failed": false,
+    "stop_reason": "completed"
+  },
+  {
+    "target": 1000000,
+    "processed": 1000000,
+    "completed": true,
+    "elapsed_s": 91.64,
+    "throughput_seq_per_s": 10912.6,
+    "latency_ms_per_seq_mean": 0.07758,
+    "peak_traced_mb": 217.9,
+    "rss_delta_mb": 54.63,
+    "failed": false,
+    "stop_reason": "time budget (90s) reached"
+  },
+  {
+    "target": 5000000,
+    "processed": 1000000,
+    "completed": false,
+    "elapsed_s": 91.23,
+    "throughput_seq_per_s": 10961.6,
+    "latency_ms_per_seq_mean": 0.07726,
+    "peak_traced_mb": 217.9,
+    "rss_delta_mb": 47.97,
+    "failed": false,
+    "stop_reason": "time budget (90s) reached"
+  }
+]

@@ -1,0 +1,42 @@
+digraph SecurityArchitecture {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Architecture de sécurité (production/middleware.py, security/)";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  REQ [label="Requête entrante", fillcolor="#cde2fb"];
+  RATELIMIT [label="RateLimitMiddleware\n120 req/min général\n10 req/min sur /auth/login\n(exempté : health/metrics)", fillcolor="#fab219"];
+  REQID [label="RequestIdMiddleware\n(X-Request-ID,\nX-Response-Time-ms)", fillcolor="#eda100"];
+  CORS [label="CORS\n(origines configurées,\nplus de wildcard+credentials)", fillcolor="#eda100"];
+  ROUTE [label="Routage", shape=diamond, fillcolor="#e1e0d9"];
+
+  PROTECTED [label="Route protégée ?", shape=diamond, fillcolor="#e1e0d9"];
+  JWT [label="get_current_user()\n(décodage JWT HS256)", fillcolor="#e34948", fontcolor=white];
+  ROLE [label="require_role(min)\nhiérarchie : viewer < analyst\n< grid_operator < administrator", fillcolor="#e34948", fontcolor=white];
+  UNAUTH [label="401 Unauthorized", fillcolor="#d03b3b", fontcolor=white];
+  FORBID [label="403 Forbidden", fillcolor="#d03b3b", fontcolor=white];
+  HANDLER [label="Gestionnaire de route", fillcolor="#1baf7a", fontcolor=white];
+  EXC [label="Gestionnaire d'exception global\n{error, detail, request_id}\n(jamais de stack trace brute)", fillcolor="#008300", fontcolor=white];
+  SYSLOG [label="system.log", fillcolor="#006600", fontcolor=white];
+
+  PASSWORDS [label="bcrypt (direct)\n(hachages seuls dans\nusers.json, plus de\nmots de passe en clair)", fillcolor="#0ca30c", fontcolor=white];
+  CVE [label="pip-audit : 18→1 CVE résiduelle\n(ecdsa, sans correctif amont,\nacceptée — HS256 pas ECDSA)", fillcolor="#fab219"];
+
+  REQ -> RATELIMIT;
+  RATELIMIT -> REQID [label="429 si dépassé"];
+  REQID -> CORS -> ROUTE;
+  ROUTE -> PROTECTED;
+  PROTECTED -> JWT [label="oui"];
+  PROTECTED -> HANDLER [label="non\n(lecture seule,\ncompromis documenté)"];
+  JWT -> UNAUTH [label="absent/invalide"];
+  JWT -> ROLE [label="valide"];
+  ROLE -> FORBID [label="rôle < min"];
+  ROLE -> HANDLER [label="rôle ≥ min"];
+  HANDLER -> EXC [label="exception"];
+  EXC -> SYSLOG;
+  JWT -> PASSWORDS [style=dashed, color="#898781"];
+  PASSWORDS -> CVE [style=dashed, color="#898781"];
+}

@@ -1,0 +1,38 @@
+digraph DashboardArchitecture {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Architecture du tableau de bord (dashboard/index.html)";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  HTML [label="index.html\n(page unique auto-contenue)", fillcolor="#cde2fb"];
+  RUNTIME [label="support.js\n('dc-runtime')\nmoteur de templating maison\n{{ }} + <sc-if> + <sc-for>", fillcolor="#4a3aa7", fontcolor=white];
+  REACT [label="React/ReactDOM (UMD)\nchargés depuis un CDN\n(unpkg, intégrité SRI vérifiée)", fillcolor="#9085e9"];
+  COMPONENT [label="class Component\nextends DCLogic\n(état, cycle de vie,\nrendu, gestionnaires)", fillcolor="#3987e5", fontcolor=white];
+
+  subgraph cluster_views {
+    label="Vues"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    TOPO [label="Topologie réseau\n(canvas 2.5D animé)", fillcolor="#9ec5f4"];
+    ALERTS [label="Panneau d'alertes\n(liste temps réel)", fillcolor="#9ec5f4"];
+    STATS [label="Statistiques\n(métriques modèle,\ntypes d'attaques)", fillcolor="#9ec5f4"];
+    XAIVIEW [label="Vue XAI\n(contributions features,\nintegrated gradients)", fillcolor="#9ec5f4"];
+    REPORT [label="Rapport de performance\n(comparaison versions,\nexport JSON)", fillcolor="#9ec5f4"];
+  }
+
+  POLL1 [label="Polling /api/detect\n(cyclique, tous compteurs)", fillcolor="#eda100"];
+  POLL2 [label="Polling /api/blockchain/status\n(10s)", fillcolor="#eda100"];
+  WS [label="WebSocket /ws\n(push temps réel)", fillcolor="#eda100"];
+
+  WIDGET [label="Widget de santé (Phase 6)\nJS autonome, état isolé\npoll /health/detailed (5s)", fillcolor="#1baf7a", fontcolor=white];
+  GUARD [label="Garde anti-mode-éditeur\n(stripEditorFlag,\nMutationObserver)", fillcolor="#1baf7a", fontcolor=white];
+
+  HTML -> RUNTIME -> REACT;
+  RUNTIME -> COMPONENT;
+  COMPONENT -> TOPO; COMPONENT -> ALERTS; COMPONENT -> STATS;
+  COMPONENT -> XAIVIEW; COMPONENT -> REPORT;
+  COMPONENT -> POLL1; COMPONENT -> POLL2; COMPONENT -> WS;
+  HTML -> WIDGET [label="ajouté sans\ntoucher au bundle"];
+  HTML -> GUARD;
+}

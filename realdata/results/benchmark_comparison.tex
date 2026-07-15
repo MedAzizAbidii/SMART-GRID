@@ -1,0 +1,17 @@
+\begin{table}
+\caption{SGCC consumer-level benchmark.}
+\label{tab:sgcc_bench}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+model & roc_auc & pr_auc & f1 & precision & recall & mcc & accuracy & train_s \\
+\midrule
+Random Forest & 0.745300 & 0.278000 & 0.317500 & 0.266700 & 0.392200 & 0.246100 & 0.856500 & 0.940000 \\
+LightGBM & 0.728700 & 0.267000 & 0.307100 & 0.248500 & 0.402000 & 0.234000 & 0.845700 & 0.570000 \\
+XGBoost & 0.720900 & 0.273300 & 0.284400 & 0.260200 & 0.313700 & 0.212200 & 0.865700 & 1.810000 \\
+Transformer Autoencoder (proposed) & 0.655400 & 0.207000 & 0.253800 & 0.208900 & 0.323500 & 0.172900 & 0.838200 & 336.770000 \\
+LSTM Autoencoder & 0.654300 & 0.211100 & 0.260100 & 0.239700 & 0.284300 & 0.185700 & 0.862400 & 24.000000 \\
+Isolation Forest & 0.595700 & 0.157500 & 0.195700 & 0.172900 & 0.225500 & 0.111200 & 0.842400 & 0.980000 \\
+One-Class SVM & 0.406600 & 0.086800 & 0.085000 & 0.051000 & 0.254900 & -0.105100 & 0.532900 & 0.000000 \\
+\bottomrule
+\end{tabular}
+\end{table}

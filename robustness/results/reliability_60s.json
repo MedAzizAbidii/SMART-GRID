@@ -1,0 +1,487 @@
+{
+  "duration_s": 60.0,
+  "n_calls": 28927,
+  "errors": 0,
+  "crash_rate": 0.0,
+  "rss_start_mb": 335.9,
+  "rss_end_mb": 334.46,
+  "mem_growth_mb": -1.44,
+  "mem_growth_rate_mb_per_hour": -86.397,
+  "latency_mean_ms": 2.072,
+  "latency_p99_ms": 2.4412,
+  "samples": [
+    {
+      "t_s": 1.0,
+      "rss_mb": 335.9,
+      "cpu_pct": 0.0,
+      "latency_ms": 1.7082,
+      "n_calls": 504,
+      "errors": 0
+    },
+    {
+      "t_s": 2.0,
+      "rss_mb": 335.9,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.6826,
+      "n_calls": 1030,
+      "errors": 0
+    },
+    {
+      "t_s": 3.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.0435,
+      "n_calls": 1531,
+      "errors": 0
+    },
+    {
+      "t_s": 4.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.264,
+      "n_calls": 2022,
+      "errors": 0
+    },
+    {
+      "t_s": 5.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2224,
+      "n_calls": 2533,
+      "errors": 0
+    },
+    {
+      "t_s": 6.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.7848,
+      "n_calls": 3032,
+      "errors": 0
+    },
+    {
+      "t_s": 7.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 384.4,
+      "latency_ms": 1.7162,
+      "n_calls": 3463,
+      "errors": 0
+    },
+    {
+      "t_s": 8.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.4305,
+      "n_calls": 3966,
+      "errors": 0
+    },
+    {
+      "t_s": 9.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 398.4,
+      "latency_ms": 1.6701,
+      "n_calls": 4458,
+      "errors": 0
+    },
+    {
+      "t_s": 10.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.7405,
+      "n_calls": 4949,
+      "errors": 0
+    },
+    {
+      "t_s": 11.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 399.9,
+      "latency_ms": 2.1887,
+      "n_calls": 5443,
+      "errors": 0
+    },
+    {
+      "t_s": 12.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.7475,
+      "n_calls": 5929,
+      "errors": 0
+    },
+    {
+      "t_s": 13.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.4391,
+      "n_calls": 6417,
+      "errors": 0
+    },
+    {
+      "t_s": 14.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2647,
+      "n_calls": 6914,
+      "errors": 0
+    },
+    {
+      "t_s": 15.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.7729,
+      "n_calls": 7398,
+      "errors": 0
+    },
+    {
+      "t_s": 16.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.1864,
+      "n_calls": 7888,
+      "errors": 0
+    },
+    {
+      "t_s": 17.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2207,
+      "n_calls": 8389,
+      "errors": 0
+    },
+    {
+      "t_s": 18.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.9717,
+      "n_calls": 8868,
+      "errors": 0
+    },
+    {
+      "t_s": 19.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.9326,
+      "n_calls": 9352,
+      "errors": 0
+    },
+    {
+      "t_s": 20.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2463,
+      "n_calls": 9842,
+      "errors": 0
+    },
+    {
+      "t_s": 21.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.8629,
+      "n_calls": 10328,
+      "errors": 0
+    },
+    {
+      "t_s": 22.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2953,
+      "n_calls": 10812,
+      "errors": 0
+    },
+    {
+      "t_s": 23.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 396.9,
+      "latency_ms": 2.1159,
+      "n_calls": 11302,
+      "errors": 0
+    },
+    {
+      "t_s": 24.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 396.9,
+      "latency_ms": 1.8396,
+      "n_calls": 11777,
+      "errors": 0
+    },
+    {
+      "t_s": 25.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.3189,
+      "n_calls": 12262,
+      "errors": 0
+    },
+    {
+      "t_s": 26.0,
+      "rss_mb": 335.93,
+      "cpu_pct": 399.9,
+      "latency_ms": 2.1084,
+      "n_calls": 12745,
+      "errors": 0
+    },
+    {
+      "t_s": 27.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.9044,
+      "n_calls": 13230,
+      "errors": 0
+    },
+    {
+      "t_s": 28.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.7925,
+      "n_calls": 13724,
+      "errors": 0
+    },
+    {
+      "t_s": 29.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.8341,
+      "n_calls": 14213,
+      "errors": 0
+    },
+    {
+      "t_s": 30.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.294,
+      "n_calls": 14699,
+      "errors": 0
+    },
+    {
+      "t_s": 31.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2844,
+      "n_calls": 15180,
+      "errors": 0
+    },
+    {
+      "t_s": 32.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2838,
+      "n_calls": 15662,
+      "errors": 0
+    },
+    {
+      "t_s": 33.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.3873,
+      "n_calls": 16142,
+      "errors": 0
+    },
+    {
+      "t_s": 34.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.4441,
+      "n_calls": 16613,
+      "errors": 0
+    },
+    {
+      "t_s": 35.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.7069,
+      "n_calls": 17109,
+      "errors": 0
+    },
+    {
+      "t_s": 36.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2293,
+      "n_calls": 17582,
+      "errors": 0
+    },
+    {
+      "t_s": 37.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 384.4,
+      "latency_ms": 1.8657,
+      "n_calls": 18029,
+      "errors": 0
+    },
+    {
+      "t_s": 38.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.3208,
+      "n_calls": 18507,
+      "errors": 0
+    },
+    {
+      "t_s": 39.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.9085,
+      "n_calls": 18981,
+      "errors": 0
+    },
+    {
+      "t_s": 40.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.2,
+      "latency_ms": 1.8064,
+      "n_calls": 19446,
+      "errors": 0
+    },
+    {
+      "t_s": 41.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.8022,
+      "n_calls": 19925,
+      "errors": 0
+    },
+    {
+      "t_s": 42.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.311,
+      "n_calls": 20401,
+      "errors": 0
+    },
+    {
+      "t_s": 43.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.8258,
+      "n_calls": 20870,
+      "errors": 0
+    },
+    {
+      "t_s": 44.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.9419,
+      "n_calls": 21346,
+      "errors": 0
+    },
+    {
+      "t_s": 45.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2252,
+      "n_calls": 21823,
+      "errors": 0
+    },
+    {
+      "t_s": 46.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 396.9,
+      "latency_ms": 1.9034,
+      "n_calls": 22310,
+      "errors": 0
+    },
+    {
+      "t_s": 47.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.7636,
+      "n_calls": 22791,
+      "errors": 0
+    },
+    {
+      "t_s": 48.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2438,
+      "n_calls": 23262,
+      "errors": 0
+    },
+    {
+      "t_s": 49.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.3324,
+      "n_calls": 23735,
+      "errors": 0
+    },
+    {
+      "t_s": 50.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.3033,
+      "n_calls": 24212,
+      "errors": 0
+    },
+    {
+      "t_s": 51.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.9375,
+      "n_calls": 24692,
+      "errors": 0
+    },
+    {
+      "t_s": 52.0,
+      "rss_mb": 336.11,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.3619,
+      "n_calls": 25174,
+      "errors": 0
+    },
+    {
+      "t_s": 53.0,
+      "rss_mb": 334.52,
+      "cpu_pct": 390.6,
+      "latency_ms": 2.4104,
+      "n_calls": 25622,
+      "errors": 0
+    },
+    {
+      "t_s": 54.1,
+      "rss_mb": 334.52,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.9482,
+      "n_calls": 26101,
+      "errors": 0
+    },
+    {
+      "t_s": 55.1,
+      "rss_mb": 334.52,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.3568,
+      "n_calls": 26583,
+      "errors": 0
+    },
+    {
+      "t_s": 56.1,
+      "rss_mb": 334.52,
+      "cpu_pct": 399.9,
+      "latency_ms": 2.2505,
+      "n_calls": 27062,
+      "errors": 0
+    },
+    {
+      "t_s": 57.1,
+      "rss_mb": 334.46,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.2997,
+      "n_calls": 27528,
+      "errors": 0
+    },
+    {
+      "t_s": 58.1,
+      "rss_mb": 334.46,
+      "cpu_pct": 400.0,
+      "latency_ms": 1.8837,
+      "n_calls": 28001,
+      "errors": 0
+    },
+    {
+      "t_s": 59.1,
+      "rss_mb": 334.46,
+      "cpu_pct": 400.0,
+      "latency_ms": 2.3084,
+      "n_calls": 28485,
+      "errors": 0
+    }
+  ],
+  "note": "Literal 24/48/72h evidence requires running this script with --seconds 86400/172800/259200; this run is a scoped, measured smoke test with the identical instrumented code path."
+}

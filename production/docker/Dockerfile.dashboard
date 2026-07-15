@@ -1,0 +1,17 @@
+# Dockerfile.dashboard — nginx serving the static dashboard + reverse-proxying
+# /api, /ws, /health, /metrics to the backend service. Standard edge-tier
+# separation: the dashboard's static assets can be served/cached/CDN'd
+# independently of the API, without needing Python installed at all.
+#
+# Build (from smartgrid_simulation/):
+#   docker build -f production/docker/Dockerfile.dashboard -t smartgrid-dashboard:1.0.0 .
+
+FROM nginx:1.27-alpine
+
+COPY dashboard/ /usr/share/nginx/html/
+COPY production/docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q -O- http://localhost/ >/dev/null 2>&1 || exit 1

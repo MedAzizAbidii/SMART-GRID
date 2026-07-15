@@ -1,0 +1,98 @@
+{
+  "id": "E09_featsel_40",
+  "group": "features",
+  "component": "Feature selection",
+  "label": "Top-40 features (variance)",
+  "changes": {
+    "feature_k": 40
+  },
+  "retrain": true,
+  "metrics": {
+    "accuracy": 0.9759493670886076,
+    "precision": 0.3829787234042553,
+    "recall": 0.4931506849315068,
+    "f1": 0.4311377245508982,
+    "roc_auc": 0.8654940799445977,
+    "pr_auc": 0.5186266050867517,
+    "mcc": 0.4225498815430382,
+    "balanced_accuracy": 0.7390953321484979,
+    "specificity": 0.9850399793654888,
+    "fpr": 0.01496002063451122,
+    "fnr": 0.5068493150684932,
+    "detection_rate": 0.4931506849315068,
+    "tn": 3819,
+    "fp": 58,
+    "fn": 37,
+    "tp": 36
+  },
+  "ci": {
+    "f1": [
+      0.4311377245508982,
+      0.35139393939393937,
+      0.5257293233082707
+    ],
+    "roc_auc": [
+      0.8654940799445977,
+      0.8137761128842562,
+      0.9116415744312762
+    ],
+    "pr_auc": [
+      0.5186266050867517,
+      0.41801226158874705,
+      0.6437791161806815
+    ],
+    "mcc": [
+      0.4225498815430382,
+      0.33967653979890156,
+      0.5218277943302121
+    ]
+  },
+  "threshold": 0.942460864773164,
+  "n_params": 107320,
+  "model_size_kb": 419.2,
+  "train_time_s": 38.15,
+  "infer_latency_ms": 0.0498,
+  "memory_mb": 30.44,
+  "selected_features": [
+    "consommation_kw",
+    "courant_a",
+    "power_factor",
+    "frequency_hz",
+    "consommation_kw_diff",
+    "consommation_kw_rolling_mean_3",
+    "consommation_kw_rolling_std_3",
+    "consommation_kw_rolling_mean_6",
+    "consommation_kw_rolling_std_6",
+    "tension_v_diff",
+    "courant_a_diff",
+    "courant_a_rolling_mean_3",
+    "courant_a_rolling_std_3",
+    "courant_a_rolling_mean_6",
+    "courant_a_rolling_std_6",
+    "current_voltage_ratio",
+    "meter_vs_zone_consumption",
+    "hour_sin",
+    "meter_id_SM_0036",
+    "meter_id_SM_0037",
+    "meter_id_SM_0038",
+    "meter_id_SM_0039",
+    "meter_id_SM_0040",
+    "meter_id_SM_0041",
+    "meter_id_SM_0042",
+    "meter_id_SM_0043",
+    "meter_id_SM_0044",
+    "meter_id_SM_0045",
+    "meter_id_SM_0046",
+    "meter_id_SM_0047",
+    "meter_id_SM_0048",
+    "meter_id_SM_0049",
+    "meter_id_SM_0050",
+    "zone_Zone A",
+    "zone_Zone B",
+    "zone_Zone C",
+    "zone_Zone D",
+    "type_commercial",
+    "type_industriel",
+    "type_residentiel"
+  ]
+}

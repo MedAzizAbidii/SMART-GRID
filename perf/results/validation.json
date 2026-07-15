@@ -1,0 +1,133 @@
+{
+  "timestamp": "2026-07-15T02:35:23.528100",
+  "only_perf_dir_touched": {
+    "claim": "All files created/modified for Phase 7 are under perf/ \u2014 no model, dataset, simulator, preprocessing, blockchain, dashboard, API, auth, or detection-pipeline file was edited.",
+    "files_under_perf": [
+      "perf\\__init__.py",
+      "perf\\__pycache__\\__init__.cpython-310.pyc",
+      "perf\\__pycache__\\bench_concurrency.cpython-310.pyc",
+      "perf\\__pycache__\\bench_latency.cpython-310.pyc",
+      "perf\\__pycache__\\bench_longrun.cpython-310.pyc",
+      "perf\\__pycache__\\bench_throughput.cpython-310.pyc",
+      "perf\\__pycache__\\bottleneck_analysis.cpython-310.pyc",
+      "perf\\__pycache__\\config.cpython-310.pyc",
+      "perf\\__pycache__\\report_generator.cpython-310.pyc",
+      "perf\\__pycache__\\resource_monitor.cpython-310.pyc",
+      "perf\\__pycache__\\validate_regression.cpython-310.pyc",
+      "perf\\bench_concurrency.py",
+      "perf\\bench_latency.py",
+      "perf\\bench_longrun.py",
+      "perf\\bench_throughput.py",
+      "perf\\bottleneck_analysis.py",
+      "perf\\config.py",
+      "perf\\report_generator.py",
+      "perf\\reports\\figures\\01_subsystem_latency.png",
+      "perf\\reports\\figures\\02_inference_latency_histogram.png",
+      "perf\\reports\\figures\\03_concurrency_throughput.png",
+      "perf\\reports\\figures\\04_concurrency_latency_percentiles.png",
+      "perf\\reports\\figures\\05_resource_timeline_soak.png",
+      "perf\\reports\\figures\\06_blockchain_validate_scaling.png",
+      "perf\\reports\\figures\\07_rate_limit_vs_capacity.png",
+      "perf\\reports\\phase7_performance_report.md",
+      "perf\\reports\\phase7_performance_report.pdf",
+      "perf\\reports\\tables\\bottleneck_findings.csv",
+      "perf\\reports\\tables\\concurrency_results.csv",
+      "perf\\reports\\tables\\phase7_performance_report.xlsx",
+      "perf\\reports\\tables\\subsystem_latency.csv",
+      "perf\\resource_monitor.py",
+      "perf\\results\\bottleneck_analysis.json",
+      "perf\\results\\concurrency.json",
+      "perf\\results\\latency.json",
+      "perf\\results\\longrun.json",
+      "perf\\results\\throughput.json",
+      "perf\\results\\validation.json",
+      "perf\\run_all.py",
+      "perf\\validate_regression.py"
+    ],
+    "count": 40
+  },
+  "endpoints": {
+    "all_ok": true,
+    "checks": {
+      "/health": {
+        "status_code": 200,
+        "body": {
+          "status": "alive",
+          "uptime_seconds": 4126.7
+        }
+      },
+      "/health/ready": {
+        "status_code": 200,
+        "body": {
+          "status": "ready",
+          "checks": {
+            "model_loaded": true,
+            "blockchain_available": true
+          }
+        }
+      },
+      "/health/detailed": {
+        "status_code": 200,
+        "body": {
+          "status": "ok",
+          "uptime_seconds": 4126.8,
+          "resources": {
+            "cpu_percent": 4.0,
+            "memory_mb": 260.9,
+            "memory_percent": 57.7
+          },
+          "model": {
+            "loaded": true,
+            "avg_latency_ms": 166.2
+          },
+          "blockchain": {
+            "available": true,
+            "valid": true,
+            "blocks": 1,
+            "error_count": 0
+          },
+          "prometheus_available": true
+        }
+      },
+      "/api/blockchain/status": {
+        "status_code": 200,
+        "body": {
+          "available": true,
+          "valid": true,
+          "errors": [],
+          "blocks": 1,
+          "authorities": [
+            "Utility Operator",
+            "Grid Supervisor",
+            "Security Auditor",
+            "Data Custodian"
+          ]
+        }
+      },
+      "/dashboard": {
+        "status_code": 200,
+        "contains_scada_title": true,
+        "contains_phase6_health_widget": true,
+        "contains_editor_flag_guard": true
+      },
+      "/support.js": {
+        "status_code": 200,
+        "content_length": 60154
+      }
+    }
+  },
+  "model_determinism": {
+    "ok": true,
+    "internal_determinism": {
+      "two_independent_fresh_subprocesses_match": true,
+      "run_a_anomaly_score": 1743.05529785,
+      "run_b_anomaly_score": 1743.05529785
+    },
+    "live_server_comparison_informational": {
+      "fresh_subprocess_anomaly_score": 1743.05529785,
+      "live_server_anomaly_score": 0.32314168,
+      "note": "Expected to differ from the fresh-subprocess score: the live server's module-level zone-consumption aggregator has accumulated this session's real traffic, while a fresh subprocess starts with an empty one \u2014 a state difference, not a code/weights difference. Not used as a pass/fail signal."
+    }
+  },
+  "overall_pass": true
+}

@@ -39,7 +39,7 @@ def _label_to_anomaly(values: pd.Series) -> pd.Series:
 
 
 def load_dataset(path: Path, label_column: str | None = None) -> pd.DataFrame:
-    frame = pd.read_csv(path)
+    frame = pd.read_csv(path, on_bad_lines="skip")
     is_smart_meter_data = False
 
     if "Timestamp" in frame.columns and "timestamp" not in frame.columns:
@@ -92,14 +92,32 @@ def add_smart_meter_features(frame: pd.DataFrame) -> pd.DataFrame:
 
     for column in NUMERIC_COLUMNS:
         frame[f"{column}_diff"] = grouped[column].diff().fillna(0.0)
+        # Rolling window of 3
         frame[f"{column}_rolling_mean_3"] = grouped[column].transform(lambda values: values.rolling(3, min_periods=1).mean())
         frame[f"{column}_rolling_std_3"] = (
             grouped[column].transform(lambda values: values.rolling(3, min_periods=1).std()).fillna(0.0)
         )
+        # Wider rolling window of 6 for slower trend detection
+        frame[f"{column}_rolling_mean_6"] = grouped[column].transform(lambda values: values.rolling(6, min_periods=1).mean())
+        frame[f"{column}_rolling_std_6"] = (
+            grouped[column].transform(lambda values: values.rolling(6, min_periods=1).std()).fillna(0.0)
+        )
 
     frame["voltage_deviation_230"] = (frame["tension_v"] - 230.0).abs()
+    frame["voltage_nominal_ratio"] = frame["tension_v"] / 230.0
+
     frame["current_voltage_ratio"] = frame["courant_a"] / frame["tension_v"].replace(0, np.nan)
     frame["current_voltage_ratio"] = frame["current_voltage_ratio"].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+
+    # Power factor approximation: P(kW) / S(kVA).
+    # Clip tightly to [0, 1.1] — values above 1 are physically impossible but
+    # can appear from measurement noise; clipping prevents extreme outliers from
+    # dominating the StandardScaler and the reconstruction error.
+    apparent_power = (frame["tension_v"] * frame["courant_a"]) / 1000.0
+    frame["power_factor"] = (frame["consommation_kw"] / apparent_power.replace(0, np.nan)).clip(0.0, 1.1).fillna(1.0)
+
+    # Weekend indicator
+    frame["is_weekend"] = (frame["dayofweek"] >= 5).astype(float)
 
     if "zone" in frame.columns:
         frame["zone_consumption_mean"] = frame.groupby(["timestamp", "zone"])["consommation_kw"].transform("mean")
@@ -167,7 +185,22 @@ def scale_features(features: pd.DataFrame, scaler: StandardScaler | None = None)
     return values.astype("float32"), scaler
 
 
-def make_sequences(values: np.ndarray, labels: np.ndarray, sequence_length: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def make_sequences(
+    values: np.ndarray,
+    labels: np.ndarray,
+    sequence_length: int,
+    label_strategy: str = "last",
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Build sliding-window sequences.
+
+    label_strategy:
+      "last"     – sequence label = label of the final timestep (recommended for
+                   anomaly detection: predict current state from recent history)
+      "any"      – anomaly if any timestep in the window is an anomaly
+      "majority" – anomaly if more than half of the timesteps are anomalies
+    """
+    if label_strategy not in {"last", "any", "majority"}:
+        raise ValueError("label_strategy must be one of: last, any, majority")
     if len(values) < sequence_length:
         raise ValueError(f"Need at least {sequence_length} rows to build temporal sequences")
 
@@ -177,7 +210,13 @@ def make_sequences(values: np.ndarray, labels: np.ndarray, sequence_length: int)
     for end in range(sequence_length, len(values) + 1):
         start = end - sequence_length
         window = values[start:end]
-        label = int(labels[start:end].max())
+        window_labels = labels[start:end]
+        if label_strategy == "last":
+            label = int(window_labels[-1])
+        elif label_strategy == "majority":
+            label = int(window_labels.mean() >= 0.5)
+        else:
+            label = int(window_labels.max())
         sequences.append(window)
         sequence_labels.append(label)
         end_indices.append(end - 1)
@@ -188,11 +227,12 @@ def prepare_sequences(
     csv_path: Path,
     sequence_length: int,
     label_column: str | None = None,
+    label_strategy: str = "last",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, pd.DataFrame, PreprocessArtifacts]:
     frame = load_dataset(csv_path, label_column)
     features, feature_columns = build_feature_frame(frame)
     values, scaler = scale_features(features)
-    sequences, labels, end_indices = make_sequences(values, frame["is_alert"].values, sequence_length)
+    sequences, labels, end_indices = make_sequences(values, frame["is_alert"].values, sequence_length, label_strategy)
     artifacts = PreprocessArtifacts(
         numeric_columns=[column for column in features.columns if column in frame.columns],
         categorical_columns=[

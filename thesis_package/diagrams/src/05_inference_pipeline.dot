@@ -1,0 +1,37 @@
+digraph InferencePipeline {
+  rankdir=LR;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Pipeline d'inférence temps réel (POST /api/detect)";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  REQ [label="Requête HTTP\nSmartMeterReading", fillcolor="#cde2fb"];
+  PYD [label="Validation Pydantic\n(bornes de sécurité,\nrejette valeurs impossibles)", fillcolor="#b7d3f6"];
+  RAW [label="_reading_to_raw()\n(normalise horodatage,\nconserve toutes les features)", fillcolor="#9ec5f4"];
+  BUF [label="Buffer par compteur\n(_buffers dict, deque)", fillcolor="#6da7ec"];
+  FULL [label="Buffer complet ?", shape=diamond, fillcolor="#eda100"];
+  INSUFF [label="Réponse\n'insufficient_data'\n(statut = buffering)", fillcolor="#e1e0d9"];
+  SEQ [label="Construction du tenseur\nde séquence", fillcolor="#3987e5", fontcolor=white];
+  FWD [label="Passe avant\nEnsembleDetector\n(v2 + v3, ~275ms mesuré)", fillcolor="#2a78d6", fontcolor=white];
+  SCORE [label="Score + confiance\n+ type d'attaque", fillcolor="#256abf", fontcolor=white];
+  XAI [label="Explication\n(top_features,\ncritical_timestep)", fillcolor="#4a3aa7", fontcolor=white];
+  ANOM [label="Anomalie confirmée\n(non dédupliquée) ?", shape=diamond, fillcolor="#eda100"];
+  NOTARY [label="Notarisation blockchain\n(ingest_records)", fillcolor="#1baf7a", fontcolor=white];
+  LOGGING [label="Logs structurés\n(predictions.log,\nattacks.log si anomalie)", fillcolor="#f4cf7a"];
+  RESP [label="Réponse JSON\n(dashboard / client)", fillcolor="#eda100"];
+
+  REQ -> PYD -> RAW -> BUF -> FULL;
+  FULL -> INSUFF [label="non"];
+  FULL -> SEQ [label="oui (≥8 lectures)"];
+  SEQ -> FWD -> SCORE;
+  FWD -> XAI;
+  SCORE -> ANOM;
+  ANOM -> NOTARY [label="oui"];
+  ANOM -> RESP [label="non"];
+  NOTARY -> RESP;
+  XAI -> RESP;
+  SCORE -> LOGGING;
+  INSUFF -> RESP;
+}

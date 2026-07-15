@@ -1,0 +1,54 @@
+digraph SimulatorArchitecture {
+  rankdir=LR;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Architecture du simulateur Smart Grid (data_generation/)";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  subgraph cluster_context {
+    label="Contexte physique modélisé"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    CLIMATE [label="Climat nord-algérien\n8-12°C hiver / 38-45°C été", fillcolor="#cde2fb"];
+    RAMADAN [label="Cycle Ramadan\n(suhoor / iftar)", fillcolor="#cde2fb"];
+    PRAYER [label="Prière du vendredi\n(creux commercial 12h-14h)", fillcolor="#cde2fb"];
+    SOLAR [label="Génération solaire\n(25% des compteurs, 1.5-4kW)", fillcolor="#cde2fb"];
+  }
+
+  subgraph cluster_zones {
+    label="4 zones (50 compteurs)"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    ZA [label="Zone A\nAlger — résidentiel dense\n(12 compteurs)", fillcolor="#b7d3f6"];
+    ZB [label="Zone B\nOran — commercial\n(13 compteurs)", fillcolor="#b7d3f6"];
+    ZC [label="Zone C\nConstantine — mixte\n(12 compteurs)", fillcolor="#b7d3f6"];
+    ZD [label="Zone D\nAnnaba — industriel léger\n(13 compteurs)", fillcolor="#b7d3f6"];
+  }
+
+  subgraph cluster_types {
+    label="Types de consommateurs"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    RES [label="Résidentiel (55%)", fillcolor="#9ec5f4"];
+    COM [label="Commercial (25%)", fillcolor="#9ec5f4"];
+    IND [label="Industriel (13%)", fillcolor="#9ec5f4"];
+    MOS [label="Mosquée (4%)\npic vendredi/ramadan", fillcolor="#9ec5f4"];
+    HOP [label="Hôpital (4%)\nprofil quasi plat 24h", fillcolor="#9ec5f4"];
+  }
+
+  subgraph cluster_attacks {
+    label="5 types d'attaques injectées (~1.5% des lectures)"; style="rounded"; color="#e34948"; fontsize=12;
+    A1 [label="FDIA_voltage\n+5 à +12% capteur tension", fillcolor="#f6c6c5"];
+    A2 [label="FDIA_subtle\ninflation coordonnée 4-9%\n(zone entière)", fillcolor="#f6c6c5"];
+    A3 [label="DoS\nrejeu dernière lecture", fillcolor="#f6c6c5"];
+    A4 [label="Fraud\nconso ×1.8-3.5, PF forcé 0.45-0.70", fillcolor="#f6c6c5"];
+    A5 [label="Fault\ntension ×0.72-0.88, courant ×1.4-2.2", fillcolor="#f6c6c5"];
+  }
+
+  GEN [label="RealisticDatasetGenerator\n(generate_realistic_dataset.py)", fillcolor="#2a78d6", fontcolor=white, shape=box3d];
+  CSV [label="Jeu de données CSV\n(lectures étiquetées)", fillcolor="#1baf7a", fontcolor=white];
+
+  CLIMATE -> GEN; RAMADAN -> GEN; PRAYER -> GEN; SOLAR -> GEN;
+  ZA -> GEN; ZB -> GEN; ZC -> GEN; ZD -> GEN;
+  RES -> GEN; COM -> GEN; IND -> GEN; MOS -> GEN; HOP -> GEN;
+  GEN -> A1 [style=dashed]; GEN -> A2 [style=dashed]; GEN -> A3 [style=dashed];
+  GEN -> A4 [style=dashed]; GEN -> A5 [style=dashed];
+  A1 -> CSV; A2 -> CSV; A3 -> CSV; A4 -> CSV; A5 -> CSV;
+  GEN -> CSV [label="lectures normales"];
+}

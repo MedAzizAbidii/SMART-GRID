@@ -1,0 +1,38 @@
+{
+  "best_key": "platt_raw",
+  "best_name": "Platt (raw score)",
+  "ranking": [
+    {
+      "key": "platt_raw",
+      "method": "Platt (raw score)",
+      "mce": 0.21275368252815494,
+      "mce_robust_min10": 0.21275368252815494,
+      "ece": 0.023992018224515185,
+      "brier": 0.018410711402256346
+    },
+    {
+      "key": "isotonic",
+      "method": "Isotonic regression",
+      "mce": 0.5963922142982483,
+      "mce_robust_min10": 0.533179091122336,
+      "ece": 0.029204440409836323,
+      "brier": 0.027995875871447272
+    },
+    {
+      "key": "platt_log",
+      "method": "Platt (log(score+eps))",
+      "mce": 0.7369958978574833,
+      "mce_robust_min10": 0.7369958978574833,
+      "ece": 0.023718629645231932,
+      "brier": 0.021806353585235253
+    },
+    {
+      "key": "temperature",
+      "method": "Temperature scaling",
+      "mce": 0.7881912094056842,
+      "mce_robust_min10": 0.7881912094056842,
+      "ece": 0.22975257273158536,
+      "brier": 0.1138547034023569
+    }
+  ]
+}

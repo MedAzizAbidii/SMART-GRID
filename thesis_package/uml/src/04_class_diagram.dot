@@ -1,0 +1,47 @@
+digraph ClassDiagram {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Diagramme de classes (classes clés)";
+  fontsize=18;
+  node [fontname="Helvetica", fontsize=9, shape=record, style=filled, fillcolor="#fcfcfb"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  TransformerAutoencoder [label="{TransformerAutoencoder (nn.Module)|+ model_dim: int = 128\l+ num_heads: int = 4\l+ num_layers: int = 3\l+ feedforward_dim: int = 256\l+ dropout: float = 0.1\l|+ encode(x) : (Tensor, list[Tensor])\l+ forward(x) : (Tensor, list[Tensor])\l}", fillcolor="#9ec5f4"];
+
+  PositionalEncoding [label="{PositionalEncoding (nn.Module)|+ d_model: int\l+ max_len: int = 512\l|+ forward(x) : Tensor\l}", fillcolor="#cde2fb"];
+
+  RealtimeDetector [label="{RealtimeDetector|- _buffers: dict[str, deque]\l- _buffer_retain: int\l- _latency_ms: deque\l+ seq_len: int\l+ feature_columns: list[str]\l+ threshold_tracker: MeterThresholdTracker\l|+ ingest(reading: dict) : dict\l+ avg_latency_ms() : float\l+ get_calibrated_probability(score) : float\l- _build_sequence_tensor(rows) : Tensor\l- _explain(seq, attn) : (top_features, critical_timestep)\l}", fillcolor="#2a78d6", fontcolor=white];
+
+  EnsembleDetector [label="{EnsembleDetector|- _v2: RealtimeDetector\l- _v3: RealtimeDetector\l|+ ingest(reading: dict) : dict\l+ seq_len : int «property»\l+ feature_columns : list «property»\l}", fillcolor="#2a78d6", fontcolor=white];
+
+  MeterThresholdTracker [label="{MeterThresholdTracker|- global_threshold: float\l- auto_recalibrate: bool\l|+ update(meter_id, score, is_normal)\l+ threshold(meter_id) : float\l+ all_thresholds() : dict\l}", fillcolor="#6da7ec"];
+
+  ZoneAggregator [label="{ZoneAggregator (singleton)|- _zone_totals: dict\l|+ update(zone, meter_id, consumption)\l+ zone_mean(zone) : float\l}", fillcolor="#6da7ec"];
+
+  AttentionExplainer [label="{AttentionExplainer|+ extract_attention_weights(model, x)\l+ get_timestep_importance(attn) : array\l+ identify_critical_timesteps(attn, top_k=3)\l}", fillcolor="#9085e9", fontcolor=black];
+
+  SHAPExplainer [label="{SHAPExplainer|+ explain_kernel_shap(model, x)\l+ explain_deep_shap(model, x)\l}", fillcolor="#9085e9"];
+
+  ExplanationFusion [label="{ExplanationFusion|+ fuse(attention_result, shap_result) : dict\l}", fillcolor="#6a4fd6", fontcolor=white];
+
+  ProofOfAuthorityLedger [label="{ProofOfAuthorityLedger|+ authorities: list[AuthorityNode]\l+ block_size: int = 10\l+ chain: list[PoABlock]\l|+ ingest_records(records: list[dict])\l+ validate() : (bool, list[str])\l+ save(path, block_dir) : Path\l+ from_csv(path) : ProofOfAuthorityLedger «classmethod»\l}", fillcolor="#1baf7a", fontcolor=white];
+
+  AuthorityNode [label="{AuthorityNode|+ label: str\l+ secret: str\l|+ seal(block_hash) : str\l+ from_label(label) : AuthorityNode «classmethod»\l}", fillcolor="#c6ecdc"];
+
+  PoABlock [label="{PoABlock «dataclass»|+ index: int\l+ timestamp: str\l+ previous_hash: str\l+ proposer: str\l+ authority_signature: str\l+ transaction_root: str\l+ transaction_count: int\l+ transactions: list[dict]\l+ block_hash: str\l}", fillcolor="#c6ecdc"];
+
+  RealisticDatasetGenerator [label="{RealisticDatasetGenerator|+ n_meters: int = 50\l+ attack_rate: float = 0.015\l+ meters: list[str]\l+ zone_of: dict\l|+ generate(...) : DataFrame\l- _meter_reading(mid, ts) : dict\l- _plan_attack_events(...)\l}", fillcolor="#cde2fb"];
+
+  RealtimeDetector -> TransformerAutoencoder [arrowhead=odiamond, label="1"];
+  TransformerAutoencoder -> PositionalEncoding [arrowhead=odiamond, label="1"];
+  RealtimeDetector -> MeterThresholdTracker [arrowhead=odiamond, label="1"];
+  RealtimeDetector -> ZoneAggregator [arrowhead=vee, style=dashed, label="utilise\n(singleton partagé)"];
+  RealtimeDetector -> AttentionExplainer [arrowhead=vee, style=dashed];
+  EnsembleDetector -> RealtimeDetector [arrowhead=odiamond, label="2\n(v2, v3)"];
+  ExplanationFusion -> AttentionExplainer [arrowhead=vee, style=dashed, label="WHERE"];
+  ExplanationFusion -> SHAPExplainer [arrowhead=vee, style=dashed, label="WHY"];
+  ProofOfAuthorityLedger -> AuthorityNode [arrowhead=odiamond, label="1..4"];
+  ProofOfAuthorityLedger -> PoABlock [arrowhead=odiamond, label="0..*"];
+  PoABlock -> AuthorityNode [arrowhead=vee, style=dashed, label="proposer"];
+}

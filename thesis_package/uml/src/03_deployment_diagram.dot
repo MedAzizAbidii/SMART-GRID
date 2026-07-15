@@ -1,0 +1,48 @@
+digraph DeploymentDiagram {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Diagramme de déploiement";
+  fontsize=18;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e", style=dashed, arrowhead=vee];
+
+  subgraph cluster_client {
+    label="«device»\nPoste opérateur"; style="rounded"; color="#898781"; fontsize=11;
+    BROWSER [shape=box3d, style=filled, fillcolor="#cde2fb", label="Navigateur Web"];
+  }
+
+  subgraph cluster_dashboard_node {
+    label="«node»\nConteneur dashboard\n(nginx) :8080"; style="rounded"; color="#4a3aa7"; fontsize=11;
+    NGINX [shape=component, style=filled, fillcolor="#9085e9", label="«artifact»\nnginx.conf"];
+  }
+
+  subgraph cluster_backend_node {
+    label="«node»\nConteneur backend\n(uvicorn/FastAPI) :8000"; style="rounded"; color="#eda100"; fontsize=11;
+    APIART [shape=component, style=filled, fillcolor="#f4cf7a", label="«artifact»\napi_server.py"];
+    PRODART [shape=component, style=filled, fillcolor="#f4cf7a", label="«artifact»\nproduction/*"];
+  }
+
+  subgraph cluster_inference_node {
+    label="«node»\nConteneur inference\n(uvicorn/FastAPI) :8100"; style="rounded"; color="#2a78d6"; fontsize=11;
+    MODELART [shape=note, style=filled, fillcolor="#9ec5f4", label="«artifact»\ntransformer_autoencoder.pt\n+ preprocessing_artifacts.json"];
+    INFERART [shape=component, style=filled, fillcolor="#9ec5f4", label="«artifact»\ninference_service.py"];
+  }
+
+  subgraph cluster_storage {
+    label="«device»\nVolume hôte persistant"; style="rounded"; color="#898781"; fontsize=11;
+    DATAVOL [shape=cylinder, style=filled, fillcolor="#e1e0d9", label="data/\n(registre blockchain,\nlectures compteurs)"];
+    LOGVOL [shape=cylinder, style=filled, fillcolor="#e1e0d9", label="backend_logs/\n(5 flux JSON)"];
+  }
+
+  BROWSER -> NGINX [label="HTTPS", style=solid];
+  NGINX -> APIART [label="/api, /ws,\n/health, /metrics", style=solid];
+  APIART -> INFERART [label="HTTP /predict\n(si SGRID_INFERENCE_\nSERVICE_URL défini)"];
+  INFERART -> MODELART [label="charge au démarrage", style=solid];
+  APIART -> DATAVOL [label="lecture/écriture", style=solid];
+  APIART -> LOGVOL [label="écriture", style=solid];
+  PRODART -> APIART [style=invis];
+
+  MONO [shape=note, style="filled,dashed", fillcolor="#e1e0d9", label="Mode mono-processus (par défaut,\nsans Docker) : backend et inférence\nfusionnés dans le même processus"];
+  APIART -> MONO [style=dotted, arrowhead=none];
+}

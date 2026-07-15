@@ -4,18 +4,61 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import threading
 import time
 from dataclasses import dataclass
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List
 
 import pandas as pd
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+# ── Opt-in API-key auth (production hardening) ─────────────────────────────
+# If SMARTGRID_API_KEY is set, mutating endpoints require header X-API-Key.
+# Unset (default) = open, so local dev + same-origin dashboard keep working.
+_API_KEY = os.environ.get("SMARTGRID_API_KEY", "").strip()
+
+
+def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
+    if _API_KEY and x_api_key != _API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key")
 
 from config import Config
+
+# ── Production hardening (Phase 6): config, logging, auth, monitoring ───────
+from production.config.settings import get_settings
+from production.logging.setup import setup_logging, log_extra, request_id_var
+from production.middleware import RequestIdMiddleware, RateLimitMiddleware, register_exception_handlers
+from production.security.router import router as auth_router
+from production.security.auth import require_role
+from production.monitoring.health import build_health_router
+
+_settings = get_settings()
+_loggers = setup_logging(_settings.log_dir, _settings.log_level)
+for _problem in _settings.validate_runtime():
+    _loggers["system"].warning(_problem)
+
+# Production ML components — loaded lazily so the server starts even without a model
+try:
+    from ml_pipeline.realtime_detector import get_detector, reset_detector
+    from ml_pipeline.model_registry import ModelRegistry
+    _ML_AVAILABLE = True
+except ImportError:
+    _ML_AVAILABLE = False
+
+# Blockchain ledger for live anomaly notarization
+try:
+    import sys as _sys
+    _sys.path.insert(0, str(__file__).replace("api_server.py", ""))
+    from blockchain.poa_ledger import ProofOfAuthorityLedger, AuthorityNode
+    from production.security.authority_keys import load_or_generate_authority_keys
+    _BLOCKCHAIN_AVAILABLE = True
+except ImportError:
+    _BLOCKCHAIN_AVAILABLE = False
 
 
 def _model_dump(model: BaseModel) -> Dict[str, Any]:
@@ -83,6 +126,24 @@ class PacketTracerCommand(BaseModel):
     value: Any | None = None
     target: str | None = None
     timestamp: float | None = None
+
+
+class SmartMeterReading(BaseModel):
+    """Live smart-meter reading for real-time ML anomaly detection.
+
+    Bounds are loose SANITY limits — they reject garbage / injection (negative
+    power, NaN, absurd magnitudes) without rejecting genuinely anomalous-but-
+    physically-possible readings (that is the model's job, not validation's).
+    """
+    meter_id: str = Field(min_length=1, max_length=64)
+    timestamp: str | float | None = None
+    consommation_kw: float = Field(ge=0, le=100000)
+    tension_v: float = Field(ge=0, le=1000)
+    courant_a: float = Field(ge=0, le=100000)
+    power_factor: float = Field(default=0.9, ge=0, le=1.2)
+    frequency_hz: float = Field(default=60.0, ge=0, le=100)
+    zone: str = Field(default="zone_a", max_length=32)
+    type: str = Field(default="residential", max_length=32)
 
 
 @dataclass
@@ -546,7 +607,7 @@ class DataEngine:
             return
 
         now = time.time()
-        cooldown = 5.0
+        cooldown = 300.0  # 5-minute deduplication per bus
         last = self.last_alert_at.get(data.bus_id, 0.0)
         if now - last < cooldown:
             return
@@ -561,6 +622,20 @@ class DataEngine:
         self.alert_history.append(alert)
         self.alert_history = self.alert_history[-200:]
         self.last_alert_at[data.bus_id] = now
+
+        # Atomic blockchain notarization for every new alert
+        if _BLOCKCHAIN_AVAILABLE and _live_ledger is not None:
+            try:
+                record = {
+                    "bus_id": data.bus_id,
+                    "attack_type": data.attack_type,
+                    "confidence": alert.confidence,
+                    "timestamp": now,
+                    "source": "api_server",
+                }
+                _live_ledger.ingest_records([record])
+            except Exception:
+                pass
 
     async def tick(self) -> None:
         if self._packet_tracer_live():
@@ -605,6 +680,36 @@ class DataEngine:
             await asyncio.sleep(period)
 
 
+# ---------------------------------------------------------------------------
+# Production singletons — initialized once at module load
+# ---------------------------------------------------------------------------
+
+# Live PoA blockchain ledger for anomaly notarization
+_live_ledger: "ProofOfAuthorityLedger | None" = None
+if _BLOCKCHAIN_AVAILABLE:
+    try:
+        # Phase 8.5 security fix: real, persistent Ed25519 keys per authority
+        # (loaded from an env var or a git-ignored local file, generated on
+        # first run) instead of the previous label-derived "secret" that
+        # anyone reading the source or the public API response could
+        # recompute. See production/security/authority_keys.py and
+        # production/docs/key_rotation_and_recovery.md.
+        _live_ledger = ProofOfAuthorityLedger(
+            authorities=load_or_generate_authority_keys(),
+            block_size=10,
+            source_file="live_alerts",
+        )
+    except Exception:
+        _live_ledger = None
+
+# ML real-time detector (loads model from outputs/ if available)
+_ml_detector = None
+if _ML_AVAILABLE:
+    try:
+        _ml_detector = get_detector()
+    except Exception:
+        _ml_detector = None
+
 engine = DataEngine()
 
 SILICON_ZONE_TO_BUS: Dict[str, int] = {
@@ -628,74 +733,63 @@ async def lifespan(_: FastAPI):
         task.cancel()
 
 
-app = FastAPI(title="Smart Grid Simulation API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title=_settings.api_title, version=_settings.api_version, lifespan=lifespan,
+    description="Smart Grid AI Cybersecurity Detection Platform — REST API.",
+)
+
+# NOTE: CORS wildcard ("*") combined with allow_credentials=True is an invalid
+# and insecure combination (browsers reject it; permissive proxies that allow
+# it defeat same-origin protections). Origins now come from settings
+# (SGRID_CORS_ALLOWED_ORIGINS), defaulting to same-origin only; credentials
+# are enabled ONLY when the origin list is not a wildcard.
+_cors_origins = _settings.cors_allowed_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials="*" not in _cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RateLimitMiddleware, requests_per_minute=_settings.rate_limit_requests_per_minute,
+                   login_requests_per_minute=_settings.rate_limit_login_per_minute)
+app.add_middleware(RequestIdMiddleware)
+register_exception_handlers(app)
+app.include_router(auth_router)
+app.include_router(build_health_router(lambda: _ml_detector, lambda: _live_ledger))
+_loggers["app"].info("API server configured", extra=log_extra(
+    environment=_settings.environment, cors_origins=_cors_origins,
+    rate_limit_per_min=_settings.rate_limit_requests_per_minute))
 
 
+_DASH_DIR  = os.path.join(os.path.dirname(__file__), "dashboard")
+_DASH_HTML = os.path.join(_DASH_DIR, "index.html")
+
+
+def _serve_app() -> FileResponse:
+    return FileResponse(_DASH_HTML, media_type="text/html")
+
+
+# ── Single dashboard — all legacy routes redirect here ──────────────
 @app.get("/")
-async def root() -> Dict[str, Any]:
-    return {
-        "name": "Smart Grid Simulation API",
-        "version": "1.0.0",
-        "status": "running",
-        "solver_mode": "mock_or_dataset_replay",
-        "endpoints": [
-            "/api/grid/all",
-            "/api/grid/bus/{bus_id}",
-            "/api/grid/data",
-                "/api/smart-meters/status",
-            "/api/packet-tracer/energy",
-            "/api/packet-tracer/security",
-            "/api/packet-tracer/status",
-            "/api/packet-tracer/commands",
-            "/api/alerts",
-            "/api/simulate/attack",
-            "/ws",
-            "/dashboard",
-        ],
-    }
+async def root() -> FileResponse:
+    return _serve_app()
+
+
+@app.get("/network")
+async def smart_grid_network() -> FileResponse:
+    return _serve_app()
 
 
 @app.get("/dashboard")
 async def dashboard() -> FileResponse:
-    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "packet_tracer_dashboard.html")
-    return FileResponse(dashboard_path)
+    return _serve_app()
 
 
-@app.get("/packet-tracer-dashboard")
-async def packet_tracer_dashboard() -> FileResponse:
-    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "packet_tracer_dashboard.html")
-    return FileResponse(dashboard_path)
-
-
-@app.get("/blockchain-dashboard")
-async def blockchain_dashboard() -> FileResponse:
-    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "smart_meters_cyber.html")
-    return FileResponse(dashboard_path)
-
-
-@app.get("/smart-meters-dashboard")
-async def smart_meters_dashboard() -> FileResponse:
-    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "smart_meters_dashboard.html")
-    return FileResponse(dashboard_path)
-
-
-@app.get("/enhanced-detections")
-async def enhanced_detections_page() -> FileResponse:
-    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "enhanced_detections.html")
-    return FileResponse(dashboard_path)
-
-
-@app.get("/model-test-dashboard")
-async def model_test_dashboard() -> FileResponse:
-    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "model_test_dashboard.html")
-    return FileResponse(dashboard_path)
+# Serve the DC runtime alongside index.html
+@app.get("/support.js")
+async def support_js() -> FileResponse:
+    return FileResponse(os.path.join(_DASH_DIR, "support.js"), media_type="application/javascript")
 
 
 @app.get("/api/model-test/summary")
@@ -801,7 +895,8 @@ async def get_bus_data(bus_id: int) -> JSONResponse:
 
 
 @app.post("/api/grid/data")
-async def ingest_grid_data(payload: ExternalGridData) -> Dict[str, Any]:
+async def ingest_grid_data(payload: ExternalGridData,
+                           _auth=Depends(require_role("grid_operator"))) -> Dict[str, Any]:
     if payload.bus_id < 1 or payload.bus_id > 14:
         return {
             "status": "error",
@@ -819,7 +914,8 @@ async def ingest_grid_data(payload: ExternalGridData) -> Dict[str, Any]:
 
 
 @app.post("/api/integrations/silicon-apocalypse/event")
-async def ingest_silicon_apocalypse_event(payload: SiliconApocalypseEvent) -> Dict[str, Any]:
+async def ingest_silicon_apocalypse_event(payload: SiliconApocalypseEvent,
+                                          _auth=Depends(require_role("grid_operator"))) -> Dict[str, Any]:
     zone_key = payload.zone.strip().lower().replace(" ", "_").replace("-", "_")
     bus_id = SILICON_ZONE_TO_BUS.get(zone_key)
     if bus_id is None:
@@ -921,7 +1017,8 @@ async def ingest_silicon_apocalypse_event(payload: SiliconApocalypseEvent) -> Di
 
 
 @app.post("/api/packet-tracer/energy")
-async def ingest_packet_tracer_energy(payload: PacketTracerEnergyPayload) -> Dict[str, Any]:
+async def ingest_packet_tracer_energy(payload: PacketTracerEnergyPayload,
+                                      _auth=Depends(require_role("grid_operator"))) -> Dict[str, Any]:
     stored = engine.update_packet_tracer_energy(payload)
     return {
         "status": "ok",
@@ -931,7 +1028,8 @@ async def ingest_packet_tracer_energy(payload: PacketTracerEnergyPayload) -> Dic
 
 
 @app.post("/api/packet-tracer/security")
-async def ingest_packet_tracer_security(payload: PacketTracerSecurityPayload) -> Dict[str, Any]:
+async def ingest_packet_tracer_security(payload: PacketTracerSecurityPayload,
+                                        _auth=Depends(require_role("grid_operator"))) -> Dict[str, Any]:
     stored = engine.update_packet_tracer_security(payload)
 
     security = payload.security or {}
@@ -975,7 +1073,8 @@ async def packet_tracer_status() -> Dict[str, Any]:
 
 
 @app.post("/api/packet-tracer/commands")
-async def queue_packet_tracer_command(payload: PacketTracerCommand) -> Dict[str, Any]:
+async def queue_packet_tracer_command(payload: PacketTracerCommand,
+                                      _auth=Depends(require_role("grid_operator"))) -> Dict[str, Any]:
     queued = engine.queue_packet_tracer_command(payload)
     return {"status": "ok", "queued": queued}
 
@@ -1004,6 +1103,8 @@ async def trigger_attack(
     attack_type: str = Query(..., pattern="^(fdia|dos)$"),
     magnitude: float = Query(default=0.2, ge=0.01, le=1.0),
     duration: float = Query(default=20.0, ge=1.0, le=300.0),
+    _: None = Depends(require_api_key),
+    _auth=Depends(require_role("analyst")),
 ) -> Dict[str, Any]:
     engine.injected_attacks[bus_id] = {
         "type": attack_type,
@@ -1023,6 +1124,288 @@ async def trigger_attack(
     engine.alert_history = engine.alert_history[-200:]
 
     return {"status": "ok", "attack": _model_dump(alert)}
+
+
+# ---------------------------------------------------------------------------
+# PRODUCTION ENDPOINTS
+# ---------------------------------------------------------------------------
+
+def _reading_to_raw(reading: "SmartMeterReading") -> Dict[str, Any]:
+    """Convert an API reading into the raw dict the detector expects.
+
+    IMPORTANT: passes ALL model input features — including power_factor and
+    frequency_hz. Omitting them makes the detector fill those columns with
+    0.0, which normalises to a ~-400 sigma outlier (0 vs a ~60 Hz mean) and
+    forces a false anomaly on every reading. Also normalises epoch-float
+    timestamps to ISO strings so hour/day features are computed from the real
+    time instead of a 1970 nanosecond mis-parse.
+    """
+    ts = reading.timestamp
+    if ts is None:
+        ts = time.strftime("%Y-%m-%d %H:%M:%S")
+    elif isinstance(ts, (int, float)):
+        ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(float(ts)))
+    return {
+        "meter_id": reading.meter_id,
+        "timestamp": ts,
+        "consommation_kw": reading.consommation_kw,
+        "tension_v": reading.tension_v,
+        "courant_a": reading.courant_a,
+        "power_factor": reading.power_factor,
+        "frequency_hz": reading.frequency_hz,
+        "zone": reading.zone,
+        "type": reading.type,
+    }
+
+
+# ── Phase 8.5 concurrency fix ────────────────────────────────────────────────
+# Root cause (found by Phase 7 profiling): `_ml_detector.ingest()` is a
+# blocking, synchronous call; calling it directly inside an `async def` route
+# froze the whole event loop for its duration (~275ms measured), serializing
+# all concurrent requests on a single worker regardless of client concurrency
+# (measured throughput went 5.04 req/s at 10 concurrent requests -> 2.37 req/s
+# at 1000). Fix: run it in a worker thread via asyncio.to_thread so the event
+# loop stays free to service other requests while inference runs.
+#
+# Moving to a thread pool makes GENUINE parallel calls to _ml_detector.ingest()
+# possible for the first time — previously, serialization on the event loop
+# was accidentally protecting per-meter state (the `_buffers` dict inside
+# RealtimeDetector) from concurrent mutation. A per-meter lock restores that
+# protection WITHOUT reintroducing global serialization: different meters
+# still run fully in parallel; only two requests for the SAME meter_id
+# arriving at literally the same instant are serialized against each other,
+# which is what "preserve identical prediction outputs" requires.
+_meter_locks: dict[str, threading.Lock] = {}
+_meter_locks_guard = threading.Lock()
+
+
+def _get_meter_lock(meter_id: str) -> threading.Lock:
+    with _meter_locks_guard:
+        lock = _meter_locks.get(meter_id)
+        if lock is None:
+            lock = threading.Lock()
+            _meter_locks[meter_id] = lock
+        return lock
+
+
+def _ingest_locked(detector: Any, raw: dict) -> dict:
+    lock = _get_meter_lock(str(raw.get("meter_id", "unknown")))
+    with lock:
+        return detector.ingest(raw)
+
+
+@app.post("/api/detect")
+async def detect_anomaly(reading: SmartMeterReading) -> Dict[str, Any]:
+    """Real-time anomaly detection for a single smart-meter reading.
+
+    Maintains a per-meter rolling buffer of seq_len readings.
+    Returns prediction + confidence + XAI attribution in <50ms.
+    Also writes a blockchain record if an anomaly is confirmed.
+
+    Deployment topologies (both fully supported, chosen by config only):
+      - in-process (default): calls get_detector() directly, exactly as
+        before Phase 6 — zero behavior change for local dev / single-container.
+      - remote inference service: if SGRID_INFERENCE_SERVICE_URL is set,
+        forwards to production/inference_service.py over HTTP instead — used
+        when the AI model runs in its own container (docker-compose 3-service
+        topology). Blockchain notarization still happens here either way.
+    """
+    if _settings.inference_service_url:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as http:
+                resp = await http.post(f"{_settings.inference_service_url}/predict",
+                                       json=reading.model_dump())
+            result = resp.json()
+        except Exception as exc:
+            _loggers["system"].exception("Remote inference service call failed",
+                                         extra=log_extra(meter_id=reading.meter_id))
+            return JSONResponse(status_code=503, content={
+                "error": "inference_service_unreachable", "detail": str(exc),
+                "request_id": request_id_var.get()})
+        raw = _reading_to_raw(reading)
+        return _finalize_detection(reading, raw, result)
+
+    if not _ML_AVAILABLE or _ml_detector is None:
+        _loggers["system"].error("Detection requested but model not loaded",
+                                 extra=log_extra(meter_id=reading.meter_id))
+        return JSONResponse(
+            status_code=503,
+            content={"error": "model_unavailable",
+                    "detail": "ML model not loaded. Train a model first.",
+                    "request_id": request_id_var.get()},
+        )
+
+    raw = _reading_to_raw(reading)
+
+    try:
+        # Phase 8.5 fix: offload the blocking model call to a worker thread
+        # so the event loop stays free for other requests (see
+        # _ingest_locked's docstring above for the concurrency rationale).
+        result = await asyncio.to_thread(_ingest_locked, _ml_detector, raw)
+    except Exception as exc:
+        # Graceful degradation: a bad reading or transient model error must not
+        # crash the endpoint — log it (system.log) and fail closed with a clear
+        # message rather than a raw 500 stack trace to the caller.
+        _loggers["system"].exception("Detector.ingest failed",
+                                     extra=log_extra(meter_id=reading.meter_id))
+        return JSONResponse(
+            status_code=503,
+            content={"error": "inference_failed",
+                    "detail": "Detection temporarily unavailable; see system logs.",
+                    "request_id": request_id_var.get()},
+        )
+    return _finalize_detection(reading, raw, result)
+
+
+def _finalize_detection(reading: "SmartMeterReading", raw: dict, result: dict) -> dict:
+    """Shared post-processing for BOTH detection paths (in-process detector
+    and remote inference-service proxy): structured logging + blockchain
+    notarization. Keeping this in one place means the two topologies can
+    never silently drift apart in behavior."""
+    _loggers["predictions"].info("reading scored", extra=log_extra(
+        meter_id=reading.meter_id, is_anomaly=result.get("is_anomaly", False),
+        anomaly_score=result.get("anomaly_score"), threshold=result.get("threshold")))
+
+    if result.get("is_anomaly") and not result.get("deduplicated") and _live_ledger is not None:
+        _loggers["attacks"].warning("anomaly detected", extra=log_extra(
+            meter_id=reading.meter_id, attack_type=result.get("attack_type", "unknown"),
+            confidence=result.get("confidence", 0.0), anomaly_score=result.get("anomaly_score", 0.0)))
+        try:
+            blockchain_record = {
+                "meter_id": reading.meter_id,
+                "attack_type": result.get("attack_type", "unknown"),
+                "confidence": result.get("confidence", 0.0),
+                "anomaly_score": result.get("anomaly_score", 0.0),
+                "threshold": result.get("threshold", 0.0),
+                "timestamp": float(raw["timestamp"]) if isinstance(raw["timestamp"], (int, float)) else time.time(),
+                "source": "ml_detect_endpoint",
+            }
+            _live_ledger.ingest_records([blockchain_record])
+            result["blockchain_notarized"] = True
+            result["blockchain_blocks"] = len(_live_ledger.chain)
+            _loggers["blockchain"].info("record notarized", extra=log_extra(
+                meter_id=reading.meter_id, blocks=len(_live_ledger.chain)))
+        except Exception as exc:
+            result["blockchain_notarized"] = False
+            result["blockchain_error"] = str(exc)
+            _loggers["blockchain"].error("notarization failed", extra=log_extra(
+                meter_id=reading.meter_id, error=str(exc)))
+    else:
+        result["blockchain_notarized"] = False
+
+    return result
+
+
+@app.post("/api/detect/batch")
+async def detect_anomaly_batch(readings: List[SmartMeterReading]) -> Dict[str, Any]:
+    """Process multiple readings in one call (up to 100)."""
+    if not _ML_AVAILABLE or _ml_detector is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "ML model not loaded. Train a model first."},
+        )
+    if len(readings) > 100:
+        return JSONResponse(status_code=400, content={"error": "Max 100 readings per batch."})
+
+    def _run_batch() -> list[dict]:
+        # Sequential within the worker thread — readings in a batch commonly
+        # span multiple meters, but this endpoint processes them as a single
+        # unit of work; the per-meter lock (_ingest_locked) still protects
+        # against a same-meter race with a concurrent /api/detect call.
+        return [_ingest_locked(_ml_detector, _reading_to_raw(r)) for r in readings]
+
+    results = await asyncio.to_thread(_run_batch)
+
+    anomalies = [r for r in results if r.get("is_anomaly")]
+    return {
+        "processed": len(results),
+        "anomalies_detected": len(anomalies),
+        "results": results,
+    }
+
+
+@app.get("/api/model/status")
+async def model_status() -> Dict[str, Any]:
+    """ML model status, metrics, and per-meter adaptive thresholds."""
+    if not _ML_AVAILABLE:
+        return {"status": "unavailable", "reason": "ml_pipeline not importable"}
+
+    registry = ModelRegistry()
+    summary = registry.summary()
+
+    detector_info: Dict[str, Any] = {"loaded": _ml_detector is not None}
+    if _ml_detector is not None:
+        detector_info["avg_latency_ms"] = _ml_detector.avg_latency_ms()
+        detector_info["seq_len"] = _ml_detector.seq_len
+        detector_info["feature_count"] = len(_ml_detector.feature_columns)
+        detector_info["global_threshold"] = _ml_detector.threshold_tracker._global
+        detector_info["meters_with_adaptive_threshold"] = len(_ml_detector.threshold_tracker._scores)
+
+    return {
+        "registry": summary,
+        "detector": detector_info,
+        "blockchain": {
+            "available": _BLOCKCHAIN_AVAILABLE and _live_ledger is not None,
+            "blocks": len(_live_ledger.chain) if _live_ledger else 0,
+        },
+    }
+
+
+@app.post("/api/model/reload")
+async def model_reload(_: None = Depends(require_api_key),
+                       _auth=Depends(require_role("administrator"))) -> Dict[str, Any]:
+    """Reload the detector from disk (apply a recalibrate.py threshold update
+    without a full process restart). Protected by X-API-Key when configured."""
+    global _ml_detector
+    if not _ML_AVAILABLE:
+        return JSONResponse(status_code=503, content={"error": "ml_pipeline not importable"})
+    try:
+        reset_detector()
+        _ml_detector = get_detector()
+        thr = _ml_detector.threshold_tracker._global if _ml_detector else None
+        return {"reloaded": _ml_detector is not None, "global_threshold": thr}
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"error": str(exc)})
+
+
+@app.get("/api/model/thresholds")
+async def model_thresholds() -> Dict[str, Any]:
+    """Per-meter adaptive thresholds (populated after enough live readings)."""
+    if _ml_detector is None:
+        return {"error": "ML model not loaded", "thresholds": {}}
+    return {
+        "global_threshold": _ml_detector.threshold_tracker._global,
+        "per_meter": _ml_detector.meter_thresholds(),
+        "note": "Per-meter thresholds activate after 30 normal readings per meter",
+    }
+
+
+@app.get("/api/blockchain/status")
+async def blockchain_status() -> Dict[str, Any]:
+    """Live PoA blockchain ledger status."""
+    if not _BLOCKCHAIN_AVAILABLE or _live_ledger is None:
+        return {"available": False, "reason": "blockchain module not loaded"}
+    valid, errors = _live_ledger.validate()
+    return {
+        "available": True,
+        "valid": valid,
+        "errors": errors,
+        "blocks": len(_live_ledger.chain),
+        "authorities": [a.label for a in _live_ledger.authorities],
+    }
+
+
+@app.get("/api/model/registry")
+async def model_registry_list() -> Dict[str, Any]:
+    """All registered model versions with metrics and champion status."""
+    if not _ML_AVAILABLE:
+        return {"error": "ml_pipeline not available", "versions": []}
+    registry = ModelRegistry()
+    return {
+        "summary": registry.summary(),
+        "versions": registry.list_versions(),
+    }
 
 
 @app.websocket("/ws")

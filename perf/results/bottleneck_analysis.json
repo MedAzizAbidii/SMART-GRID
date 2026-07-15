@@ -1,0 +1,196 @@
+{
+  "findings": [
+    {
+      "category": "slowest_subsystem",
+      "conclusion": "'ml_inference_ensemble (preprocessing+2x forward+XAI)' is the slowest recurring, per-request subsystem at 275.28 ms mean, 10,196x slower than the fastest measured operation ('blockchain_ingest_record', 0.0270 ms).",
+      "evidence": {
+        "simulator_generation": 0.038,
+        "blockchain_ingest_record": 0.027,
+        "ml_inference_ensemble (preprocessing+2x forward+XAI)": 275.283,
+        "rest_endpoint /health": 2.944,
+        "rest_endpoint /health/ready": 1.48,
+        "rest_endpoint /health/detailed": 109.587,
+        "rest_endpoint /api/blockchain/status": 1.372,
+        "rest_endpoint /api/model/status": 2.305,
+        "rest_endpoint /dashboard": 2.25,
+        "rest_endpoint /support.js": 1.978
+      }
+    },
+    {
+      "category": "inference_architecture",
+      "conclusion": "The deployed detector is an EnsembleDetector running v2 AND v3 sequentially on every reading (275.3 ms measured total vs ~138.8 ms self-reported for a single model's forward pass) \u2014 confirms end-to-end latency is ~2x a single model's cost by architecture, not an anomaly.",
+      "evidence": {
+        "total_ingest_ms": 275.283,
+        "single_model_avg_latency_ms": 138.8
+      }
+    },
+    {
+      "category": "streaming_throughput_ceiling",
+      "conclusion": "Single-threaded streaming throughput of the full detection pipeline is 3.5 readings/sec (285.71 ms/reading) \u2014 this, not I/O, network, or the simulator (27,958+ samples/sec measured), is what caps how fast a single worker can process a continuous stream of meter readings.",
+      "evidence": {
+        "name": "ingest_samples_per_sec (streaming, single-threaded)",
+        "window_sec": 10,
+        "count": 35,
+        "samples_per_sec": 3.5,
+        "implied_max_ms_per_sample": 285.71
+      }
+    },
+    {
+      "category": "operational_rate_limit_ceiling",
+      "conclusion": "The deployed RateLimitMiddleware (120 req/min default) is the dominant ceiling for external API traffic \u2014 a burst of 150 requests produced 30 HTTP 429s (first rejection at request #120). This is ~2.0 req/sec, roughly 3.6x below the backend's own single-threaded inference capacity (see streaming_throughput_ceiling) \u2014 the limiter, not the model, is what an external client actually experiences.",
+      "evidence": {
+        "name": "rate_limit_ceiling (production instance, port 8000, as deployed)",
+        "burst_requests": 150,
+        "first_429_at_request_index": 120,
+        "total_429s": 30,
+        "total_200s": 120,
+        "request_latency_stats_ms": {
+          "min": 0.979,
+          "max": 13.707,
+          "mean": 1.369,
+          "p50": 1.265,
+          "p90": 1.469,
+          "p95": 1.674,
+          "p99": 2.357,
+          "n": 150
+        },
+        "note": "The deployed RateLimitMiddleware default (120 req/min) rejects requests with 429 well before the backend's own processing capacity is reached (see inference/blockchain in-process benchmarks). This is a hard external-traffic ceiling by design, not a backend performance limit."
+      }
+    },
+    {
+      "category": "concurrency_scaling",
+      "conclusion": "api_server.py's /api/detect handler is `async def` but calls `_ml_detector.ingest()` directly (no run_in_executor/asyncio.to_thread) \u2014 a synchronous, ~270ms-per-call function. Measured in-process throughput went from 3.6 req/s at concurrency=1 to 2.37 req/s at concurrency=1000 (0.66x, on an 8-logical-core machine, bounded thread pool of 64) \u2014 far from the 1000x linear scaling the requested concurrency level implies. On a single uvicorn worker (this deployment's default), concurrent HTTP requests to /api/detect queue behind the blocking call and are effectively processed close to one-at-a-time.",
+      "evidence": {
+        "levels_tested": [
+          1,
+          10,
+          25,
+          50,
+          100,
+          250,
+          500,
+          1000
+        ],
+        "throughput_by_level": {
+          "1": 3.6,
+          "10": 5.04,
+          "25": 4.65,
+          "50": 3.88,
+          "100": 3.39,
+          "250": 2.69,
+          "500": 2.69,
+          "1000": 2.37
+        }
+      }
+    },
+    {
+      "category": "health_endpoint_blocking_call",
+      "conclusion": "production/monitoring/health.py's /health/detailed calls psutil.cpu_percent(interval=0.1) synchronously inside an `async def` route. That single call measured 108.6 ms mean, accounting for 99% of the endpoint's own measured latency (109.6 ms). Since it blocks the whole event loop, every dashboard health-widget poll (every 5s, per dashboard/index.html) freezes ALL other in-flight requests on a single-worker deployment for ~100ms.",
+      "evidence": {
+        "psutil_call_ms": {
+          "min": 101.081,
+          "max": 110.946,
+          "mean": 108.612,
+          "p50": 108.851,
+          "p90": 110.375,
+          "p95": 110.745,
+          "p99": 110.906,
+          "n": 20
+        },
+        "endpoint_total_ms": {
+          "min": 107.081,
+          "max": 119.748,
+          "mean": 109.587,
+          "p50": 108.829,
+          "p90": 110.968,
+          "p95": 113.988,
+          "p99": 118.596,
+          "n": 15
+        }
+      }
+    },
+    {
+      "category": "blockchain_validate_scaling",
+      "conclusion": "ledger.validate() (called on every /health/detailed and /api/blockchain/status request) is O(total records ever notarized) \u2014 measured 7.79 ms at 5,000 records on an isolated ledger (~1.5549 ms per additional 1,000 records). The live ledger currently holds only 1 block, so this cost is negligible today, but it will grow linearly with the system's operational lifetime and compounds with the psutil blocking call on the same endpoint.",
+      "evidence": {
+        "10": {
+          "records": 10,
+          "blocks": 2,
+          "validate_ms": 0.034,
+          "valid": true
+        },
+        "100": {
+          "records": 100,
+          "blocks": 11,
+          "validate_ms": 0.171,
+          "valid": true
+        },
+        "500": {
+          "records": 500,
+          "blocks": 51,
+          "validate_ms": 0.779,
+          "valid": true
+        },
+        "1000": {
+          "records": 1000,
+          "blocks": 101,
+          "validate_ms": 1.711,
+          "valid": true
+        },
+        "3000": {
+          "records": 3000,
+          "blocks": 301,
+          "validate_ms": 4.623,
+          "valid": true
+        },
+        "5000": {
+          "records": 5000,
+          "blocks": 501,
+          "validate_ms": 7.793,
+          "valid": true
+        }
+      }
+    },
+    {
+      "category": "startup_cost",
+      "conclusion": "Model weight loading takes ~2698 ms (cold, from disk); full app startup (uvicorn boot to first healthy /health) takes ~4010 ms. Both are one-time per-process costs, not recurring \u2014 relevant to container restart/scaling latency (e.g. how fast a new replica becomes ready behind a load balancer), not steady-state throughput.",
+      "evidence": {
+        "cold_start_ms": 2697.8364000024158,
+        "app_startup_ms": 4009.5
+      }
+    },
+    {
+      "category": "memory_growth_soak",
+      "conclusion": "live server process: MEASUREMENT UNRELIABLE this run \u2014 _find_live_server_pid() matched a process (PID 4368) reporting 4.58 MB average RSS, far too low for a running FastAPI+PyTorch process; likely picked up a stale/wrong PID via cmdline matching. Not treated as evidence either way; in-process heavy-load worker: 3.5 MB growth over 298.06s processing 778 readings back-to-back. No unbounded growth observed in the reliable measurement(s) over this window \u2014 see the report for the scaled-down soak duration used and the recommendation for a longer run with corrected PID detection.",
+      "evidence": {
+        "live_server": {
+          "n_samples": 109,
+          "duration_sec": 298.05,
+          "proc_cpu_avg": 0.0,
+          "proc_cpu_peak": 0.0,
+          "sys_cpu_avg": 63.31,
+          "sys_cpu_peak": 86.0,
+          "proc_mem_avg_mb": 4.58,
+          "proc_mem_peak_mb": 4.58,
+          "proc_mem_start_mb": 4.58,
+          "proc_mem_end_mb": 4.58,
+          "proc_mem_growth_mb": 0.0
+        },
+        "profiling_process": {
+          "n_samples": 109,
+          "duration_sec": 298.06,
+          "proc_cpu_avg": 358.79,
+          "proc_cpu_peak": 398.7,
+          "sys_cpu_avg": 63.31,
+          "sys_cpu_peak": 86.1,
+          "proc_mem_avg_mb": 296.04,
+          "proc_mem_peak_mb": 297.19,
+          "proc_mem_start_mb": 293.66,
+          "proc_mem_end_mb": 297.17,
+          "proc_mem_growth_mb": 3.5
+        }
+      }
+    }
+  ],
+  "n_findings": 9
+}

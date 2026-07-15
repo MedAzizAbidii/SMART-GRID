@@ -1,0 +1,32 @@
+{
+  "score_range": [
+    0.00024725173716433346,
+    0.3487505316734314
+  ],
+  "skew_raw": 19.941781997680664,
+  "skew_log1p": 18.90668296813965,
+  "skew_log_eps": 2.0015006065368652,
+  "platt_raw_a": 25.02721572860128,
+  "platt_raw_b": -3.2027953404688714,
+  "platt_log_a": 2.974273211902323,
+  "platt_log_b": 15.213395852625641,
+  "metrics": {
+    "uncalibrated_percentile": {
+      "ece": 0.4816,
+      "mce": 0.8278,
+      "brier": 0.317
+    },
+    "platt_raw": {
+      "ece": 0.024,
+      "mce": 0.2128,
+      "brier": 0.0184
+    },
+    "platt_log": {
+      "ece": 0.0237,
+      "mce": 0.737,
+      "brier": 0.0218
+    }
+  },
+  "tail_overconfidence_gap_platt_log": 0.7369958978574833,
+  "root_cause": "VAL reconstruction scores are heavily right-skewed (skewness=19.94) AND uniformly < 1 (range [0.000247, 0.348751]). Because all values are already sub-1, log1p(x)=log(1+x) is numerically close to the identity there, so it barely reduces skew (19.94 -> 18.91) and would not meaningfully fix calibration. A raw log(score+eps) transform is the correct choice for sub-1 multiplicative-scale data: it reduces skew to 2.00 and yields a well-scaled Platt slope (a=2.97 vs raw a=25.03), improving average calibration (ECE 0.4816 -> 0.0237). However log-Platt introduces a NEW measured failure: overconfidence in the sparse high-score tail (gap=0.737 in the top probability bin), which is why isotonic regression and temperature scaling are compared in Part A rather than adopting log-Platt outright. On THIS leak-free split the historical catastrophic blowup (a~700) did not reproduce (raw Platt here: a=25.0, not saturated) \u2014 that specific failure was tied to the old leaky evaluation pipeline / old model, not an inherent property of Platt scaling itself."
+}

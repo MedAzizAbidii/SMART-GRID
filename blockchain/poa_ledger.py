@@ -16,6 +16,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+
 
 ZERO_HASH = "0" * 64
 
@@ -38,19 +42,70 @@ def _chunked(items: Sequence[Any], size: int) -> Iterable[Sequence[Any]]:
 
 @dataclass(frozen=True)
 class AuthorityNode:
-    """A validator authorized to seal blocks in the PoA network."""
+    """A validator authorized to seal blocks in the PoA network.
+
+    SECURITY (fixed in Phase 8.5): signing uses a real Ed25519 keypair.
+    `public_key` (hex) is safe to expose — it is what `summary()`/
+    `/api/blockchain/status` would need to publish for third-party
+    verification, though today only `label` is exposed there. The private
+    key lives only in memory for this object's lifetime and is excluded
+    from equality/hashing/repr (`compare=False, repr=False`) so it can
+    never leak through an accidental `asdict()`/log/print of this
+    dataclass. Previously, `secret` was `sha256(label + fixed-suffix)` —
+    fully recomputable by anyone who read the source or the public label
+    (itself returned by the API), which defeated the ledger's own
+    tamper-evidence claim. See
+    `thesis_package/review/ieee_style_final_review.md` §3 for the finding
+    that prompted this fix, and
+    `production/docs/key_rotation_and_recovery.md` for key management.
+    """
 
     label: str
-    secret: str
+    public_key: str  # hex-encoded Ed25519 public key — safe to expose
+    _private_key: Ed25519PrivateKey | None = field(default=None, repr=False, compare=False)
 
     @classmethod
     def from_label(cls, label: str) -> "AuthorityNode":
+        """Generates a FRESH random Ed25519 keypair for this label.
+
+        Suitable for tests and throwaway/isolated ledgers (nothing needs
+        to survive past this process). Production code that needs a
+        persistent authority identity across process restarts must use
+        `from_label_and_private_key` with a key obtained via
+        `production.security.authority_keys.load_or_generate_authority_keys()`
+        instead of calling this directly.
+        """
         normalized = label.strip() or "Authority"
-        secret = _sha256_text(f"{normalized}|smart-grid-poa-secret")
-        return cls(label=normalized, secret=secret)
+        return cls._build(normalized, Ed25519PrivateKey.generate())
+
+    @classmethod
+    def from_label_and_private_key(cls, label: str, private_key_bytes: bytes) -> "AuthorityNode":
+        """Builds a node from a caller-supplied 32-byte Ed25519 private key —
+        the persistent-identity path used by production (see
+        `production/security/authority_keys.py`)."""
+        normalized = label.strip() or "Authority"
+        return cls._build(normalized, Ed25519PrivateKey.from_private_bytes(private_key_bytes))
+
+    @classmethod
+    def _build(cls, label: str, private_key: Ed25519PrivateKey) -> "AuthorityNode":
+        public_bytes = private_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+        return cls(label=label, public_key=public_bytes.hex(), _private_key=private_key)
 
     def seal(self, block_hash: str) -> str:
-        return _sha256_text(f"{self.secret}:{block_hash}")
+        if self._private_key is None:
+            raise RuntimeError(f"AuthorityNode '{self.label}' has no private key loaded; cannot sign")
+        return self._private_key.sign(block_hash.encode("utf-8")).hex()
+
+    def verify(self, block_hash: str, signature_hex: str) -> bool:
+        """Verifies a signature using only this node's PUBLIC key — the
+        correct asymmetric-crypto property that `validate()` now relies on
+        instead of recomputing a shared secret."""
+        try:
+            public_key = Ed25519PublicKey.from_public_bytes(bytes.fromhex(self.public_key))
+            public_key.verify(bytes.fromhex(signature_hex), block_hash.encode("utf-8"))
+            return True
+        except (InvalidSignature, ValueError):
+            return False
 
 
 @dataclass
@@ -158,10 +213,8 @@ class ProofOfAuthorityLedger:
             proposer = authority_map.get(block.proposer)
             if proposer is None:
                 errors.append(f"Block {block.index}: unknown proposer '{block.proposer}'")
-            else:
-                expected_signature = proposer.seal(block.block_hash)
-                if block.authority_signature != expected_signature:
-                    errors.append(f"Block {block.index}: invalid authority signature")
+            elif not proposer.verify(block.block_hash, block.authority_signature):
+                errors.append(f"Block {block.index}: invalid authority signature")
 
             if index == 0:
                 if block.previous_hash != ZERO_HASH:

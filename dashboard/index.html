@@ -1,856 +1,1154 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Grid System Dashboard</title>
-  <style>
-    :root {
-      --paper: #f8f7f3;
-      --ink: #132337;
-      --panel: #ffffff;
-      --line: #d4deea;
-      --ok: #1a9d6b;
-      --warn: #f08b2a;
-      --danger: #df3b57;
-      --power: #1b7be8;
-      --subtle: #5e6f84;
-      --accent: #0f5f8c;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background: linear-gradient(130deg, #f5efe1 0%, #eef6ff 45%, #f2fff8 100%);
-      font-family: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
-    }
-
-    .shell {
-      max-width: 1440px;
-      margin: 0 auto;
-      padding: 16px;
-      display: grid;
-      gap: 14px;
-    }
-
-    .hero {
-      background: linear-gradient(140deg, #0f4f6b, #0f2449 55%, #164d64);
-      color: #eaf6ff;
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 18px 35px rgba(9, 31, 56, 0.22);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-    }
-
-    .hero h1 {
-      margin: 0;
-      font-size: 28px;
-      letter-spacing: 0.4px;
-    }
-
-    .hero p {
-      margin: 8px 0 0;
-      color: #c4e4ff;
-      font-size: 14px;
-    }
-
-    .toolbar {
-      margin-top: 12px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      border: none;
-      border-radius: 9px;
-      padding: 8px 12px;
-      font-weight: 700;
-      cursor: pointer;
-      background: #def4ff;
-      color: #073857;
-      transition: transform 0.18s ease;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-    }
-
-    button.warn { background: #ffe8cb; color: #804600; }
-    button.danger { background: #ffd3da; color: #7a1024; }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 10px;
-    }
-
-    .stat {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px 12px;
-      box-shadow: 0 6px 12px rgba(30, 55, 85, 0.06);
-    }
-
-    .stat .k {
-      font-size: 12px;
-      color: var(--subtle);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .stat .v {
-      margin-top: 4px;
-      font-size: 27px;
-      font-weight: 800;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 1.25fr 0.9fr;
-      gap: 12px;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-      box-shadow: 0 8px 15px rgba(29, 52, 76, 0.08);
-    }
-
-    .panel h2 {
-      margin: 0 0 10px;
-      font-size: 20px;
-    }
-
-    .topology {
-      position: relative;
-      min-height: 650px;
-      background:
-        radial-gradient(circle at 88% 20%, rgba(30, 166, 215, 0.15), transparent 35%),
-        radial-gradient(circle at 9% 85%, rgba(12, 183, 130, 0.16), transparent 38%),
-        #fcfffd;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      overflow: hidden;
-      padding: 10px;
-    }
-
-    .node {
-      position: absolute;
-      min-width: 80px;
-      padding: 5px 7px;
-      border: 1px solid #bfd2e5;
-      border-radius: 9px;
-      text-align: center;
-      font-size: 11px;
-      background: #ffffff;
-      box-shadow: 0 5px 10px rgba(40, 72, 100, 0.1);
-      transform: translate(-50%, -50%);
-      z-index: 2;
-    }
-
-    .node .name { font-weight: 700; font-size: 12px; }
-    .node .meta { color: #4f637a; margin-top: 2px; }
-    .node.generator { border-color: #7fb6ea; background: #ecf7ff; }
-    .node.zone { border-color: #b8d9cb; background: #f1fff8; }
-    .node.attack { border-color: var(--danger); background: #ffe8ec; }
-
-    .flow-layer {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      pointer-events: none;
-    }
-
-    .flow-line {
-      stroke: var(--power);
-      stroke-width: 2;
-      stroke-linecap: round;
-      fill: none;
-      stroke-dasharray: 5 11;
-      animation: pulse var(--speed, 1.2s) linear infinite;
-      opacity: var(--alpha, 0.55);
-    }
-
-    .flow-line.warning {
-      stroke: var(--warn);
-    }
-
-    .flow-line.attack {
-      stroke: var(--danger);
-      stroke-width: 2.6;
-      opacity: 0.88;
-    }
-
-    @keyframes pulse {
-      from { stroke-dashoffset: 0; }
-      to { stroke-dashoffset: -32; }
-    }
-
-    .legend {
-      margin-top: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      color: var(--subtle);
-      font-size: 12px;
-    }
-
-    .dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      margin-right: 5px;
-      vertical-align: middle;
-    }
-
-    .tables {
-      display: grid;
-      gap: 10px;
-    }
-
-    .table-box {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      overflow: hidden;
-      background: #fff;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    th, td {
-      padding: 7px 8px;
-      border-bottom: 1px solid #edf2f7;
-      text-align: left;
-    }
-
-    th {
-      background: #f5fafc;
-      color: #35506e;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.45px;
-    }
-
-    tr:last-child td { border-bottom: none; }
-
-    .status-ok { color: var(--ok); font-weight: 700; }
-    .status-alert { color: var(--danger); font-weight: 700; }
-    .muted { color: var(--subtle); }
-
-    .alerts {
-      max-height: 280px;
-      overflow: auto;
-    }
-
-    .pt-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      padding: 8px;
-      font-size: 12px;
-    }
-
-    .pt-card {
-      border: 1px solid #e6edf5;
-      border-radius: 9px;
-      background: #f8fcff;
-      padding: 8px;
-    }
-
-    .pt-title {
-      font-weight: 700;
-      color: #214765;
-      margin-bottom: 6px;
-    }
-
-    .pt-line {
-      color: #2c4864;
-      margin-top: 3px;
-    }
-
-    .pt-state-safe {
-      color: var(--ok);
-      font-weight: 700;
-    }
-
-    .pt-state-alert {
-      color: var(--danger);
-      font-weight: 700;
-    }
-
-    .pt-controls {
-      padding: 0 8px 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .pt-controls button {
-      padding: 6px 10px;
-      border-radius: 7px;
-      font-size: 12px;
-    }
-
-    .alert {
-      border: 1px solid #ffd6de;
-      border-left: 4px solid var(--danger);
-      border-radius: 9px;
-      background: #fff4f7;
-      padding: 8px;
-      margin-bottom: 8px;
-      font-size: 12px;
-    }
-
-    @media (max-width: 1120px) {
-      .layout { grid-template-columns: 1fr; }
-      .topology { min-height: 600px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+(function () {
+  function stripEditorFlag() {
+    document.documentElement.removeAttribute('data-dc-editor-on');
+    if (document.body) document.body.removeAttribute('data-dc-editor-on');
+  }
+  stripEditorFlag();
+  document.addEventListener('DOMContentLoaded', stripEditorFlag);
+  new MutationObserver(stripEditorFlag).observe(document.documentElement, {
+    attributes: true, attributeFilter: ['data-dc-editor-on'], subtree: true
+  });
+})();
+</script>
+<script src="/support.js"></script>
 </head>
 <body>
-  <main class="shell">
-    <section class="hero">
-      <h1>Smart Grid Operations and Circulation Dashboard</h1>
-      <p id="last-update">Waiting for live telemetry...</p>
-      <div class="toolbar">
-        <button onclick="injectAttack('fdia')">Inject FDIA</button>
-        <button class="danger" onclick="injectAttack('dos')">Inject DoS</button>
-        <button class="warn" onclick="triggerZone('sector_a', 0.85)">Code Red Sector A</button>
-        <button class="warn" onclick="triggerZone('sector_b', 0.90)">Code Red Sector B</button>
-        <button class="warn" onclick="triggerZone('sector_c', 0.70)">Code Red Sector C</button>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+.app{--bg:#050a14;--surface:#080f1e;--card:#0c1527;--inset:#0a1220;--border:rgba(56,189,248,0.08);--border-soft:rgba(56,189,248,0.06);--text:#e2e8f0;--text2:#cbd5e1;--text3:#94a3b8;--glass:rgba(8,15,30,.72);--rapport-fg:#e9d5ff;--scrim:rgba(2,6,14,.78);--vignette:rgba(2,6,14,.55)}
+.app[data-th="light"]{--bg:#e7edf4;--surface:#ffffff;--card:#ffffff;--inset:#eef2f8;--border:rgba(15,23,42,0.09);--border-soft:rgba(15,23,42,0.05);--text:#0f172a;--text2:#334155;--text3:#5b6b82;--glass:rgba(255,255,255,.72);--rapport-fg:#6d28d9;--scrim:rgba(30,41,59,.45);--vignette:rgba(120,140,175,.22)}
+.app[data-th="light"] ::-webkit-scrollbar-thumb{background:rgba(15,23,42,0.18)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(56,189,248,0.18);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+@keyframes pulseRed{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes ringPulse{0%{transform:translate(-50%,-50%) scale(.5);opacity:.7}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0}}
+@keyframes alertIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes vibrate{0%,100%{transform:translateX(0)}15%{transform:translateX(-3px) rotate(-1deg)}30%{transform:translateX(3px) rotate(1deg)}45%{transform:translateX(-2px)}60%{transform:translateX(2px)}75%{transform:translateX(-1px)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-130%)}to{opacity:1;transform:translateY(0)}}
+@keyframes errGlow{0%,100%{box-shadow:inset 0 0 0 1px rgba(239,68,68,.45),0 0 10px rgba(239,68,68,.2)}50%{box-shadow:inset 0 0 0 1px rgba(239,68,68,.9),0 0 20px rgba(239,68,68,.5)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fillBar{from{width:0}}
+</style>
+</helmet>
+<div data-screen-label="SCADA Dashboard" class="app" data-th="{{ theme }}" style="display:flex;flex-direction:column;height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;transition:background .3s,color .3s">
+
+  <header style="flex:0 0 50px;height:50px;display:flex;align-items:center;gap:16px;padding:0 16px;background:var(--glass);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(255,255,255,.04),0 6px 24px rgba(0,0,0,.28);z-index:5;position:relative">
+    <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">
+      <div style="width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,#3b82f6,#06b6d4);box-shadow:0 0 16px rgba(59,130,246,.55),inset 0 1px 0 rgba(255,255,255,.4),0 4px 10px rgba(6,182,212,.35)">⚡</div>
+      <div style="line-height:1.15">
+        <div style="font-size:14px;font-weight:800;letter-spacing:.02em">Smart Grid SCADA</div>
+        <div style="font-size:9.5px;color:#4a5568;font-weight:500">Réseau Intelligent · IA Transformer · Blockchain PoA · IoT Maison</div>
       </div>
-    </section>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;overflow:hidden">
+      <span style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;color:#10b981;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;flex:0 0 auto"></span>Modèle Actif</span>
+      <span style="white-space:nowrap;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;color:#3b82f6;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);font-family:'JetBrains Mono',monospace">AUC 97.95%</span>
+      <span style="white-space:nowrap;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;color:#06b6d4;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25)">⛓ PoA · {{ blocks }} blocs</span>
+      <span style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;color:#ef4444;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);animation:pulseRed 1.4s infinite"><span style="width:7px;height:7px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;flex:0 0 auto"></span>{{ alertCount }} Alertes</span>
+    </div>
+    <div style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+      <button onClick="{{ openDemo }}" style="display:flex;align-items:center;gap:5px;font-family:inherit;font-size:11.5px;font-weight:700;color:#0a0a0a;background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;padding:7px 13px;border-radius:7px;cursor:pointer;box-shadow:0 2px 10px rgba(245,158,11,.3)">▶ Démo</button>
+      <button onClick="{{ openReport }}" style="display:flex;align-items:center;gap:5px;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--rapport-fg);background:rgba(139,92,246,.16);border:1px solid rgba(139,92,246,.4);padding:7px 13px;border-radius:7px;cursor:pointer">📋 Rapport</button>
+      <button onClick="{{ toggleTheme }}" title="Basculer thème" style="display:flex;align-items:center;justify-content:center;font-family:inherit;font-size:14px;width:32px;height:32px;color:var(--text3);background:var(--card);border:1px solid var(--border);border-radius:7px;cursor:pointer">{{ themeIcon }}</button>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--text3);padding-left:6px;min-width:74px;text-align:right">{{ clock }}</div>
+    </div>
+  </header>
 
-    <section class="stats">
-      <div class="stat"><div class="k">Buses Online</div><div class="v" id="stat-buses">0</div></div>
-      <div class="stat"><div class="k">Live Generation (est.)</div><div class="v" id="stat-generation">0.00 kW</div></div>
-      <div class="stat"><div class="k">Total Consumption</div><div class="v" id="stat-load">0.00 kW</div></div>
-      <div class="stat"><div class="k">Active Incidents</div><div class="v" id="stat-attacks">0</div></div>
-      <div class="stat"><div class="k">Avg Frequency</div><div class="v" id="stat-frequency">0.000 Hz</div></div>
-    </section>
-
-    <section class="layout">
-      <div class="panel">
-        <h2>Real-Time Electricity Circulation Map</h2>
-        <div id="topology" class="topology">
-          <svg id="flow-svg" class="flow-layer" viewBox="0 0 1000 660" preserveAspectRatio="none"></svg>
-        </div>
-        <div class="legend">
-          <span><span class="dot" style="background:#1b7be8"></span>Normal flow</span>
-          <span><span class="dot" style="background:#f08b2a"></span>High-load flow</span>
-          <span><span class="dot" style="background:#df3b57"></span>Attack impacted flow</span>
-        </div>
+  <div style="flex:1;display:flex;min-height:0">
+    <div style="flex:1;position:relative;min-width:0;background:radial-gradient(120% 90% at 50% 8%,rgba(59,130,246,.10),rgba(6,182,212,.04) 38%,transparent 70%),var(--bg);overflow:hidden">
+      <div style="position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 160px 40px var(--vignette);z-index:1"></div>
+      <canvas ref="{{ canvasRef }}" style="display:block;width:100%;height:100%;position:relative;z-index:0"></canvas>
+      <div style="position:absolute;top:14px;left:16px;font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--text3);text-transform:uppercase;pointer-events:none;z-index:2">Topologie Réseau · Temps Réel</div>
+      <div style="position:absolute;bottom:14px;left:16px;display:flex;gap:14px;align-items:center;padding:8px 13px;background:var(--glass);border:1px solid var(--border);border-radius:10px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;z-index:2">
+        <span style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.1em;text-transform:uppercase">Flux</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3)"><span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;box-shadow:0 0 6px #3b82f6"></span>HV 225 kV</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3)"><span style="width:7px;height:7px;border-radius:50%;background:#06b6d4;box-shadow:0 0 6px #06b6d4"></span>MV 20 kV</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3)"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981"></span>LV Compteurs</span>
       </div>
+    </div>
 
-      <div class="panel tables">
-        <div class="table-box">
-          <table>
-            <thead>
-              <tr><th>Packet Tracer Live Bridge</th></tr>
-            </thead>
-          </table>
-          <div class="pt-grid">
-            <div class="pt-card">
-              <div class="pt-title">Gateways</div>
-              <div class="pt-line">Security: <span id="pt-gw-security">Unknown</span></div>
-              <div class="pt-line">Energy: <span id="pt-gw-energy">Unknown</span></div>
-              <div class="pt-line">Central: <span id="pt-gw-central">Unknown</span></div>
+    <aside style="flex:0 0 310px;width:310px;background:var(--glass);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border-left:1px solid var(--border);box-shadow:-8px 0 28px rgba(0,0,0,.22);display:flex;flex-direction:column;min-height:0;z-index:3">
+      <div style="display:flex;border-bottom:1px solid var(--border)">
+        <button onClick="{{ tabAlertes }}" style="{{ tabStyles.alertes }}">🔔 ALERTES</button>
+        <button onClick="{{ tabStats }}" style="{{ tabStyles.stats }}">📊 STATS</button>
+        <button onClick="{{ tabXai }}" style="{{ tabStyles.xai }}">🧠 XAI</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:12px">
+
+        <sc-if value="{{ isAlertes }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <sc-if value="{{ hasAlerts }}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="4">
+                <div onClick="{{ a.open }}" style="cursor:pointer;background:var(--card);border:1px solid var(--border);border-left:3px solid {{ a.attackColor }};border-radius:8px;padding:10px 12px;margin-bottom:8px;animation:alertIn .35s ease both">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
+                    <span style="font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:5px;color:{{ a.attackColor }};background:{{ a.attackBg }}">{{ a.attackIcon }} {{ a.badge }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#4a5568">{{ a.time }}</span>
+                  </div>
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--text)">{{ a.meterId }}</span>
+                    <span style="font-size:10px;color:var(--text3)">Zone {{ a.zone }} · {{ a.zoneName }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#64748b;margin-bottom:7px">
+                    <span>Score <span style="font-family:'JetBrains Mono',monospace;color:var(--text2)">{{ a.scoreFmt }}</span></span>
+                    <span style="color:{{ a.attackColor }};font-weight:700">{{ a.confidence }}% conf.</span>
+                  </div>
+                  <div style="height:4px;border-radius:3px;background:var(--inset);overflow:hidden">
+                    <div style="height:100%;width:{{ a.powerPct }}%;background:{{ a.attackColor }};border-radius:3px"></div>
+                  </div>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ noAlerts }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;color:#4a5568">
+                <div style="font-size:38px;opacity:.5">🛡️</div>
+                <div style="margin-top:10px;font-size:12px;font-weight:600">Surveillance active…</div>
+                <div style="margin-top:4px;font-size:10px">Aucune anomalie détectée</div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isStats }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#06b6d4;margin:2px 0 9px">Modèle Champion v2</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">
+              <sc-for list="{{ modelMetrics }}" as="m" hint-placeholder-count="4">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:11px 12px">
+                  <div style="font-size:9.5px;color:#64748b;font-weight:600;letter-spacing:.04em">{{ m.label }}</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;margin-top:3px;color:{{ m.color }}">{{ m.value }}</div>
+                </div>
+              </sc-for>
             </div>
-            <div class="pt-card">
-              <div class="pt-title">Battery + Production</div>
-              <div class="pt-line">Batteries: <span id="pt-bat-count">0</span></div>
-              <div class="pt-line">Charge: <span id="pt-bat-charge">0.0</span> / <span id="pt-bat-capacity">0.0</span> kWh</div>
-              <div class="pt-line">Solar/Wind: <span id="pt-production">0.0 / 0.0</span> kW</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#06b6d4;margin:2px 0 9px">Types d'Attaques</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">
+              <sc-for list="{{ attackStats }}" as="s" hint-placeholder-count="4">
+                <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid {{ s.color }};border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:11px;font-weight:600;color:var(--text2)">{{ s.icon }} {{ s.label }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:{{ s.color }}">{{ s.count }}</span>
+                </div>
+              </sc-for>
             </div>
-            <div class="pt-card">
-              <div class="pt-title">Home Devices</div>
-              <div class="pt-line">Thermostat: <span id="pt-thermostat">-</span> C</div>
-              <div class="pt-line">Fan: <span id="pt-fan">-</span>%</div>
-              <div class="pt-line">AC: <span id="pt-ac">-</span> W</div>
-            </div>
-            <div class="pt-card">
-              <div class="pt-title">Security State</div>
-              <div class="pt-line">Mode: <span id="pt-mode" class="pt-state-safe">SAFE</span></div>
-              <div class="pt-line">Gate: <span id="pt-gate">-</span></div>
-              <div class="pt-line">Motion: <span id="pt-motion">-</span></div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#06b6d4;margin:2px 0 9px">Infrastructure</div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <sc-for list="{{ infra }}" as="i" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border-soft)">
+                  <span style="font-size:11px;color:var(--text3)">{{ i.label }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text)">{{ i.value }}</span>
+                </div>
+              </sc-for>
             </div>
           </div>
-          <div class="pt-controls">
-            <button class="warn" onclick="queuePtCommand('code_red')">Queue Code Red</button>
-            <button onclick="queuePtCommand('code_green')">Queue Code Green</button>
-            <button onclick="queuePtCommand('set_thermostat', 20)">Set Thermostat 20C</button>
+        </sc-if>
+
+        <sc-if value="{{ isXai }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8b5cf6;margin:2px 0 12px">Explication IA — Dernière Anomalie</div>
+            <sc-if value="{{ hasXai }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div style="background:var(--card);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:13px;margin-bottom:14px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:22px">{{ xaiIcon }}</span>
+                    <div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--text)">{{ xaiMeter }}</div>
+                      <div style="font-size:10px;color:var(--text3);margin-top:1px">Zone {{ xaiZone }} · <span style="color:{{ xaiColor }};font-weight:700">{{ xaiAttack }}</span></div>
+                    </div>
+                    <div style="margin-left:auto;text-align:right">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:{{ xaiColor }}">{{ xaiConfidence }}%</div>
+                      <div style="font-size:9px;color:#4a5568">confiance</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="font-size:10px;color:#64748b;margin-bottom:8px;font-weight:600">Contributions (Integrated Gradients)</div>
+                <sc-for list="{{ xaiFeatures }}" as="f" hint-placeholder-count="5">
+                  <div style="margin-bottom:11px">
+                    <div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:4px">
+                      <span style="font-family:'JetBrains Mono',monospace;color:var(--text2)">{{ f.name }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace;color:{{ f.color }};font-weight:700">{{ f.value }}</span>
+                    </div>
+                    <div style="height:7px;border-radius:4px;background:var(--inset);overflow:hidden">
+                      <div style="height:100%;width:{{ f.pct }}%;background:{{ f.color }};border-radius:4px;box-shadow:0 0 8px {{ f.color }}"></div>
+                    </div>
+                  </div>
+                </sc-for>
+                <div style="margin-top:14px;font-size:10px;line-height:1.5;color:#64748b;padding:11px;background:var(--inset);border-radius:8px;border:1px solid var(--border-soft)">Integrated Gradients : contribution de chaque feature à l'erreur de reconstruction du Transformer Autoencoder.</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noXai }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;color:#4a5568">
+                <div style="font-size:34px;opacity:.5">🧠</div>
+                <div style="margin-top:10px;font-size:12px;font-weight:600">En attente d'anomalie</div>
+                <div style="margin-top:4px;font-size:10px">L'explication apparaîtra ici</div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+      </div>
+    </aside>
+  </div>
+
+  <sc-if value="{{ popupOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePopup }}" style="position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:40;padding:24px">
+      <div onClick="{{ stop }}" style="width:92%;max-width:920px;max-height:90vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid rgba(239,68,68,.4);border-radius:16px;overflow:hidden;box-shadow:0 0 60px rgba(239,68,68,.25),0 30px 80px rgba(0,0,0,.6);animation:modalIn .3s ease both">
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;background:{{ anomHeaderBg }};border-bottom:1px solid rgba(239,68,68,.25)">
+          <span style="font-size:30px">{{ anomIcon }}</span>
+          <div style="min-width:0">
+            <div style="font-size:18px;font-weight:800;color:{{ anomColor }};line-height:1.1">{{ anomAttack }}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">{{ anomLabel }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;margin-left:8px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;padding:4px 9px;border-radius:6px;background:rgba(0,0,0,.3);color:var(--text)">{{ anomMeter }}</span>
+            <span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:6px;background:rgba(0,0,0,.3);color:var(--text3)">Zone {{ anomZone }}</span>
+          </div>
+          <div style="margin-left:auto;text-align:right">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:{{ anomColor }}">{{ anomConfidence }}%</div>
+            <div style="font-size:9px;color:#64748b">CONFIANCE</div>
+          </div>
+          <button onClick="{{ closePopup }}" style="width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);color:var(--text3);font-size:16px;cursor:pointer;flex:0 0 auto">✕</button>
+        </div>
+
+        <div style="display:flex;gap:18px;padding:10px 20px;background:var(--inset);border-bottom:1px solid var(--border);font-size:11px;flex-wrap:wrap">
+          <span style="color:#64748b">🏠 <span style="color:var(--text2);font-weight:600">{{ anomBuilding }}</span></span>
+          <span style="color:#64748b">📍 <span style="color:var(--text2);font-weight:600">Zone {{ anomZone }} · {{ anomZoneName }}</span></span>
+          <span style="color:#64748b">⚡ <span style="font-family:'JetBrains Mono',monospace;color:#ef4444;font-weight:700">{{ anomKw }} kW</span></span>
+          <span style="color:#64748b">🔌 <span style="font-family:'JetBrains Mono',monospace;color:var(--text2);font-weight:600">{{ anomVolt }} V</span></span>
+          <span style="color:#64748b">📈 <span style="font-family:'JetBrains Mono',monospace;color:var(--text2);font-weight:600">{{ anomAmp }} A</span></span>
+          <span style="color:#64748b">📟 <span style="color:var(--text2);font-weight:600">{{ anomDeviceCount }} appareils</span></span>
+        </div>
+
+        <div style="flex:1;display:flex;min-height:0">
+          <div style="flex:1;overflow-y:auto;padding:16px;min-width:0">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#64748b;margin-bottom:10px">Appareils IoT connectés</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px">
+              <sc-for list="{{ anomDevices }}" as="d" hint-placeholder-count="9">
+                <div style="{{ d.cardStyle }}">
+                  <div style="position:absolute;top:0;left:0;right:0;height:2px;background:{{ d.topColor }}"></div>
+                  <div style="font-size:23px;line-height:1">{{ d.emoji }}</div>
+                  <div style="font-size:11.5px;font-weight:600;color:var(--text);margin-top:5px">{{ d.name }}</div>
+                  <span style="display:inline-block;margin-top:5px;font-size:8.5px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:4px;color:{{ d.statusColor }};background:{{ d.statusBg }}">{{ d.statusLabel }}</span>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--text2);margin-top:6px">{{ d.reading }}</div>
+                  <sc-if value="{{ d.hasReason }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:9px;color:{{ d.statusColor }};margin-top:3px">{{ d.reason }}</div>
+                  </sc-if>
+                  <div style="height:3px;border-radius:2px;background:var(--inset);overflow:hidden;margin-top:7px">
+                    <div style="height:100%;width:{{ d.powerPct }}%;background:{{ d.topColor }}"></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:9px;margin-top:14px;padding:10px 13px;border-radius:9px;background:var(--card);border:1px solid var(--border)">
+              <span style="font-size:18px">📡</span>
+              <span style="font-size:11.5px;font-weight:600;color:var(--text2)">Smart Hub</span>
+              <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;color:{{ hubColor }};background:{{ hubBg }};{{ hubAnim }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ hubColor }}"></span>{{ hubLabel }}</span>
+            </div>
+
+            <div style="margin-top:11px;padding:13px;border-radius:9px;background:var(--card);border:1px solid var(--border)">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+                <span style="font-size:11px;color:var(--text3);font-weight:600">Consommation actuelle</span>
+                <span style="font-size:11px;color:#ef4444;font-weight:700;font-family:'JetBrains Mono',monospace">+{{ anomEcart }}%</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace">
+                <div><div style="font-size:9px;color:#4a5568">Normal</div><div style="font-size:16px;font-weight:700;color:#10b981">{{ anomNormalKw }} kW</div></div>
+                <div style="flex:1;height:9px;border-radius:5px;background:var(--inset);overflow:hidden;position:relative"><div style="height:100%;width:{{ anomFillPct }}%;background:linear-gradient(90deg,#10b981,#f59e0b,#ef4444);border-radius:5px"></div></div>
+                <div style="text-align:right"><div style="font-size:9px;color:#4a5568">Actuel</div><div style="font-size:16px;font-weight:700;color:#ef4444">{{ anomKw }} kW</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:0 0 200px;display:flex;flex-direction:column;align-items:center;padding:18px 16px;background:var(--inset);border-left:1px solid var(--border)">
+            <div style="width:132px;border-radius:22px;background:#111827;padding:8px;box-shadow:0 12px 30px rgba(0,0,0,.5),inset 0 0 0 2px #1f2937;position:relative;animation:vibrate .5s ease-in-out 3">
+              <div style="position:absolute;left:-3px;top:54px;width:3px;height:26px;border-radius:3px;background:#1f2937"></div>
+              <div style="position:absolute;left:-3px;top:88px;width:3px;height:18px;border-radius:3px;background:#1f2937"></div>
+              <div style="position:absolute;right:-3px;top:70px;width:3px;height:34px;border-radius:3px;background:#1f2937"></div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:3px 0 6px"><span style="width:5px;height:5px;border-radius:50%;background:#374151"></span><span style="width:26px;height:4px;border-radius:3px;background:#374151"></span></div>
+              <div style="background:#070e1c;border-radius:16px;overflow:hidden;min-height:300px;display:flex;flex-direction:column">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:9px;color:#9ca3af;font-family:'JetBrains Mono',monospace"><span>{{ clockShort }}</span><span>📶 🔋</span></div>
+                <div style="text-align:center;font-size:9px;color:#6b7280;font-weight:600;padding-bottom:6px">Smart Grid App</div>
+                <div style="margin:0 7px;border-radius:12px;overflow:hidden;background:{{ anomColor }};animation:slideDown .5s cubic-bezier(.2,1.2,.4,1) both">
+                  <div style="display:flex;align-items:center;gap:5px;padding:7px 9px 4px;font-size:8px;color:rgba(255,255,255,.85)"><span style="width:14px;height:14px;border-radius:4px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:9px">⚡</span>Smart Grid Alerte<span style="margin-left:auto">{{ clockShort }}</span></div>
+                  <div style="padding:0 9px 9px;color:#fff"><div style="font-size:11px;font-weight:800;line-height:1.15">⚠ {{ anomAttack }}</div><div style="font-size:9px;opacity:.92;margin-top:3px;line-height:1.3">{{ anomImpact }}</div></div>
+                </div>
+                <div style="margin:9px 9px 0;text-align:center;padding:9px;border-radius:11px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3)"><div style="font-size:8px;color:#9ca3af">{{ anomMeter }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:#ef4444;line-height:1.1">{{ anomKw }} kW</div></div>
+                <div style="padding:9px 11px;display:flex;flex-direction:column;gap:5px">
+                  <sc-for list="{{ anomAffected }}" as="d" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:7px;font-size:9px;color:#d1d5db"><span style="width:6px;height:6px;border-radius:50%;background:{{ d.dotColor }};flex:0 0 auto"></span><span>{{ d.emoji }}</span><span>{{ d.name }}</span></div>
+                  </sc-for>
+                </div>
+                <div style="margin:auto 9px 10px"><div onClick="{{ closePopup }}" style="text-align:center;font-size:10px;font-weight:700;color:#fff;padding:8px;border-radius:9px;background:{{ anomColor }};cursor:pointer">Voir détails →</div></div>
+              </div>
+            </div>
+            <div style="margin-top:12px;font-size:9px;color:#4a5568;text-align:center">📲 Alerte envoyée au résident</div>
           </div>
         </div>
+      </div>
+    </div>
+  </sc-if>
 
-        <div class="table-box">
-          <table>
-            <thead>
-              <tr><th colspan="4">Generation Components</th></tr>
-              <tr><th>Unit</th><th>Type</th><th>Bus</th><th>Status</th></tr>
-            </thead>
-            <tbody id="generation-table"></tbody>
-          </table>
+  <sc-if value="{{ demoOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDemo }}" style="position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:45;padding:24px">
+      <div onClick="{{ stop }}" style="width:92%;max-width:480px;background:var(--surface);border:1px solid rgba(245,158,11,.3);border-radius:16px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:modalIn .3s ease both">
+        <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)">
+          <span style="font-size:20px">🎬</span>
+          <div><div style="font-size:15px;font-weight:800">Scénario de Démonstration</div><div style="font-size:10px;color:#64748b">Simulation d'attaques · 5 étapes</div></div>
+          <button onClick="{{ closeDemo }}" style="margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);color:var(--text3);font-size:14px;cursor:pointer">✕</button>
         </div>
-
-        <div class="table-box">
-          <table>
-            <thead>
-              <tr><th colspan="5">Bus Telemetry (14 Grid Devices)</th></tr>
-              <tr><th>Bus</th><th>Voltage</th><th>Current</th><th>Load</th><th>Status</th></tr>
-            </thead>
-            <tbody id="bus-table"></tbody>
-          </table>
-        </div>
-
-        <div class="table-box">
-          <table>
-            <thead>
-              <tr><th colspan="4">Security and Zone Devices</th></tr>
-              <tr><th>Zone</th><th>Mapped Bus</th><th>Sensors</th><th>State</th></tr>
-            </thead>
-            <tbody id="zone-table"></tbody>
-          </table>
-        </div>
-
-        <div class="table-box alerts">
-          <table>
-            <thead>
-              <tr><th>Recent Alerts</th></tr>
-            </thead>
-          </table>
-          <div id="alerts" class="muted" style="padding:8px">No alerts yet</div>
+        <div style="padding:18px 20px">
+          <sc-for list="{{ demoSteps }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:13px;padding:11px 13px;border-radius:10px;margin-bottom:8px;background:{{ s.rowBg }};border:1px solid {{ s.rowBorder }}">
+              <div style="{{ s.circleStyle }}">{{ s.mark }}</div>
+              <div style="flex:1"><div style="font-size:13px;font-weight:700;color:{{ s.textColor }}">{{ s.label }}</div><div style="font-size:9.5px;color:#64748b;margin-top:1px">{{ s.sub }}</div></div>
+              <span style="font-size:10px;font-weight:700;color:{{ s.color }}">{{ s.badge }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button onClick="{{ runDemo }}" style="flex:1;font-family:inherit;font-size:13px;font-weight:700;color:#0a0a0a;background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;padding:11px;border-radius:9px;cursor:pointer">▶ Lancer</button>
+            <button onClick="{{ stopDemo }}" style="flex:0 0 auto;font-family:inherit;font-size:13px;font-weight:700;color:var(--text3);background:transparent;border:1px solid rgba(148,163,184,.3);padding:11px 22px;border-radius:9px;cursor:pointer">■ Stop</button>
+          </div>
         </div>
       </div>
-    </section>
-  </main>
+    </div>
+  </sc-if>
 
-  <script>
-    const API = "";
-    const TOPOLOGY = {
-      generators: [
-        { id: "G1", label: "Gas Plant 1", type: "gas", bus: 1, x: 110, y: 90 },
-        { id: "G2", label: "Gas Plant 2", type: "gas", bus: 2, x: 110, y: 180 },
-        { id: "SOLAR", label: "Solar Farm", type: "solar", bus: 3, x: 110, y: 270 },
-        { id: "WIND", label: "Wind Farm", type: "wind", bus: 6, x: 110, y: 360 },
-        { id: "HYDRO", label: "Hydro Plant", type: "hydro", bus: 8, x: 110, y: 450 }
-      ],
-      buses: [
-        { id: 1, x: 340, y: 90 }, { id: 2, x: 470, y: 90 }, { id: 3, x: 600, y: 90 },
-        { id: 4, x: 730, y: 120 }, { id: 5, x: 840, y: 190 }, { id: 6, x: 890, y: 300 },
-        { id: 7, x: 840, y: 410 }, { id: 8, x: 730, y: 490 }, { id: 9, x: 600, y: 530 },
-        { id: 10, x: 470, y: 530 }, { id: 11, x: 340, y: 530 }, { id: 12, x: 240, y: 460 },
-        { id: 13, x: 200, y: 340 }, { id: 14, x: 240, y: 210 }
-      ],
-      zones: [
-        { id: "sector_a", bus: 5, x: 950, y: 160 },
-        { id: "sector_b", bus: 8, x: 950, y: 250 },
-        { id: "sector_c", bus: 11, x: 950, y: 340 },
-        { id: "sector_d", bus: 14, x: 950, y: 430 },
-        { id: "perimeter", bus: 6, x: 950, y: 520 }
-      ]
+  <sc-if value="{{ reportOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeReport }}" style="position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:45;padding:24px">
+      <div onClick="{{ stop }}" style="width:92%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid rgba(139,92,246,.3);border-radius:16px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:modalIn .3s ease both">
+        <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)">
+          <span style="font-size:20px">📋</span>
+          <div><div style="font-size:15px;font-weight:800">Rapport de Performance</div><div style="font-size:10px;color:#64748b">Transformer Autoencoder · Session live</div></div>
+          <button onClick="{{ closeReport }}" style="margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);color:var(--text3);font-size:14px;cursor:pointer">✕</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:18px 20px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8b5cf6;margin-bottom:11px">Métriques du Modèle</div>
+          <sc-for list="{{ reportBars }}" as="b" hint-placeholder-count="4">
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--text2);font-weight:600">{{ b.label }}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">{{ b.value }}</span></div>
+              <div style="height:9px;border-radius:5px;background:var(--inset);overflow:hidden"><div style="height:100%;width:{{ b.pct }}%;border-radius:5px;background:{{ b.grad }}"></div></div>
+            </div>
+          </sc-for>
+
+          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8b5cf6;margin:20px 0 11px">Comparaison des Versions</div>
+          <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;background:var(--card);font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em"><div style="padding:9px 12px">Version</div><div style="padding:9px 12px;text-align:right">AUC</div><div style="padding:9px 12px;text-align:right">Recall</div><div style="padding:9px 12px;text-align:right">F1</div></div>
+            <sc-for list="{{ versions }}" as="v" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;border-top:1px solid var(--border-soft);background:{{ v.rowBg }}">
+                <div style="padding:9px 12px;font-weight:700;color:{{ v.nameColor }}">{{ v.name }}</div>
+                <div style="padding:9px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text2)">{{ v.auc }}</div>
+                <div style="padding:9px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text2)">{{ v.recall }}</div>
+                <div style="padding:9px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text2)">{{ v.f1 }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8b5cf6;margin:20px 0 11px">Anomalies Détectées</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;background:var(--card);border-left:3px solid {{ a.attackColor }}">
+                <span style="font-size:16px">{{ a.attackIcon }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--text)">{{ a.meterId }}</span>
+                <span style="font-size:10px;color:var(--text3)">Zone {{ a.zone }}</span>
+                <span style="margin-left:auto;font-size:10px;color:{{ a.attackColor }};font-weight:700">{{ a.badge }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#4a5568">{{ a.time }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <button onClick="{{ downloadReport }}" style="margin-top:18px;width:100%;font-family:inherit;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#8b5cf6,#3b82f6);border:none;padding:12px;border-radius:10px;cursor:pointer">⬇ Télécharger JSON</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    activeTab: 'alertes',
+    clock: '00:00:00',
+    clockShort: '14:30',
+    alerts: [],
+    anomaly: null,
+    popupOpen: false,
+    demoOpen: false,
+    reportOpen: false,
+    demoStep: 0,
+    demoRunning: false,
+    blocks: 18,
+    alertCount: 9,
+    theme: 'dark',
+  };
+  toggleTheme = () => this.setState((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }));
+
+  // ---------- static reference data ----------
+  zones = [
+    { id: 'A', name: 'Résidentiel', color: '#3b82f6' },
+    { id: 'B', name: 'Commercial', color: '#10b981' },
+    { id: 'C', name: 'Industriel', color: '#8b5cf6' },
+    { id: 'D', name: 'Mixte', color: '#f59e0b' },
+  ];
+  attacks = {
+    FDIA: { color: '#ef4444', icon: '🎭', label: 'Injection de Fausses Données', badge: 'FDIA' },
+    DoS: { color: '#f97316', icon: '🚫', label: 'Déni de Service', badge: 'DoS' },
+    Fraud: { color: '#8b5cf6', icon: '💰', label: "Vol d'Énergie", badge: 'Fraude' },
+    Fault: { color: '#f59e0b', icon: '⚡', label: 'Défaut Équipement', badge: 'Défaut' },
+  };
+  typeLabels = { house: 'Maison Résidentielle', apartment: 'Immeuble Collectif', office: 'Bureau Commercial', hospital: 'Hôpital', school: 'École', factory: 'Usine Industrielle', warehouse: 'Entrepôt Logistique' };
+
+  ensureData() {
+    if (this.buildings) return;
+    const types = {
+      0: ['house', 'house', 'house', 'apartment', 'apartment'],
+      1: ['office', 'hospital', 'office', 'school', 'office'],
+      2: ['factory', 'warehouse', 'factory', 'warehouse', 'factory'],
+      3: ['house', 'office', 'apartment', 'warehouse', 'factory'],
     };
+    this.buildings = [];
+    let n = 1;
+    for (let zi = 0; zi < 4; zi++) for (let s = 0; s < 5; s++) {
+      this.buildings.push({ id: 'SM_' + String(n).padStart(4, '0'), zi, slot: s, type: types[zi][s] });
+      n++;
+    }
+    // animation state
+    this.frame = 0;
+    this.smoke = [];
+    this.sparks = [];
+    this.lineParts = new Map();
+    this.anomalyId = null;
+  }
 
-    const RING_CONNECTIONS = [
-      [1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,1],
-      [2,9],[3,10],[4,12],[6,13]
+  _METER_IDS = ['SM_0001','SM_0002','SM_0003','SM_0004','SM_0005','SM_0006','SM_0007','SM_0008','SM_0009','SM_0010','SM_0011','SM_0012','SM_0013','SM_0014','SM_0015','SM_0016','SM_0017','SM_0018','SM_0019','SM_0020'];
+  _METER_ZONES = {SM_0001:'A',SM_0002:'A',SM_0003:'A',SM_0004:'A',SM_0005:'A',SM_0006:'B',SM_0007:'B',SM_0008:'B',SM_0009:'B',SM_0010:'B',SM_0011:'C',SM_0012:'C',SM_0013:'C',SM_0014:'C',SM_0015:'C',SM_0016:'D',SM_0017:'D',SM_0018:'D',SM_0019:'D',SM_0020:'D'};
+  _METER_TYPES = {SM_0001:'house',SM_0002:'house',SM_0003:'house',SM_0004:'apartment',SM_0005:'apartment',SM_0006:'office',SM_0007:'hospital',SM_0008:'office',SM_0009:'school',SM_0010:'office',SM_0011:'factory',SM_0012:'warehouse',SM_0013:'factory',SM_0014:'warehouse',SM_0015:'factory',SM_0016:'house',SM_0017:'office',SM_0018:'apartment',SM_0019:'warehouse',SM_0020:'factory'};
+  // UI building label -> model consumer type (the model only knows these 3)
+  _MODEL_TYPE = {house:'residentiel',apartment:'residentiel',office:'commercial',hospital:'commercial',school:'commercial',factory:'industriel',warehouse:'industriel'};
+  // realistic normal consumption band (kW) per model type — matches training data
+  _TYPE_KW = {residentiel:[1.0,4.0],commercial:[3.0,7.0],industriel:[12.0,18.0]};
+  _feedIdx = 0;
+
+  componentDidMount() {
+    this.ensureData();
+    this.tickClock();
+    this._clock = setInterval(() => this.tickClock(), 1000);
+    const seed = [
+      this.makeAlert('Fraud', 'SM_0012', 'C', '14:21:08'),
+      this.makeAlert('DoS', 'SM_0007', 'B', '14:18:55'),
+      this.makeAlert('Fault', 'SM_0018', 'D', '14:15:33'),
     ];
+    this.setState({ alerts: seed });
+    this._backendOk = false;
+    this._auto = setTimeout(() => { if (!this._backendOk) this.triggerAnomaly('FDIA', 'SM_0003', 'A', false); }, 3500);
+    this._autoFeed = setInterval(() => this._pollBackend(), 500);
+    this._bcPoll = setInterval(() => this._pollBlockchain(), 10000);
+    this._pollBlockchain();
+  }
+  componentWillUnmount() {
+    cancelAnimationFrame(this._raf);
+    clearInterval(this._clock);
+    clearTimeout(this._auto);
+    clearInterval(this._autoFeed);
+    clearInterval(this._bcPoll);
+    (this._demoTimers || []).forEach(clearTimeout);
+  }
 
-    function num(v, d = 3) { return Number(v || 0).toFixed(d); }
-    function byBus(buses) {
-      const map = {};
-      buses.forEach(b => { map[b.bus_id] = b; });
-      return map;
-    }
-
-    function nodeXY(id, type = "bus") {
-      if (type === "bus") {
-        const n = TOPOLOGY.buses.find(b => b.id === id);
-        return n ? { x: n.x, y: n.y } : { x: 0, y: 0 };
-      }
-      if (type === "generator") {
-        const n = TOPOLOGY.generators.find(g => g.id === id);
-        return n ? { x: n.x, y: n.y } : { x: 0, y: 0 };
-      }
-      const n = TOPOLOGY.zones.find(z => z.id === id);
-      return n ? { x: n.x, y: n.y } : { x: 0, y: 0 };
-    }
-
-    async function fetchAlerts() {
-      const res = await fetch(`${API}/api/alerts?limit=25`);
-      if (!res.ok) throw new Error("alerts fetch failed");
-      return res.json();
-    }
-
-    async function fetchGrid() {
-      const res = await fetch(`${API}/api/grid/all`);
-      if (!res.ok) throw new Error("grid fetch failed");
-      return res.json();
-    }
-
-    async function fetchPacketTracerStatus() {
-      const res = await fetch(`${API}/api/packet-tracer/status`);
-      if (!res.ok) throw new Error("packet tracer status fetch failed");
-      return res.json();
-    }
-
-    async function injectAttack(type) {
-      const bus = Math.floor(Math.random() * 14) + 1;
-      const url = `${API}/api/simulate/attack?bus_id=${bus}&attack_type=${type}&magnitude=0.35&duration=20`;
-      await fetch(url, { method: "POST" });
-      await refresh();
-    }
-
-    async function triggerZone(zone, severity) {
-      await fetch(`${API}/api/integrations/silicon-apocalypse/event`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          zone,
-          motion_detected: true,
-          sensor_id: `${zone}_sensor`,
-          severity,
-          consumption_kw: 2 + severity * 8,
-          voltage_v: 228
-        })
-      });
-      await refresh();
-    }
-
-    async function queuePtCommand(type, value = null) {
-      await fetch(`${API}/api/packet-tracer/commands`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, value })
-      });
-
-      if (type === "code_red") {
-        await triggerZone("perimeter", 0.85);
-      }
-    }
-
-    function textOr(v, fallback = "-") {
-      return (v === null || v === undefined || v === "") ? fallback : v;
-    }
-
-    function renderPacketTracer(status) {
-      const gateways = status.gateways || {};
-      const energy = status.energy || {};
-      const batteries = energy.batteries || {};
-      const production = energy.production || {};
-      const security = status.security || {};
-      const home = status.home_devices || {};
-
-      document.getElementById("pt-gw-security").textContent = textOr(gateways.security, "offline");
-      document.getElementById("pt-gw-energy").textContent = textOr(gateways.energy, "offline");
-      document.getElementById("pt-gw-central").textContent = textOr(gateways.central, "offline");
-
-      document.getElementById("pt-bat-count").textContent = textOr(batteries.count, 0);
-      document.getElementById("pt-bat-charge").textContent = num(batteries.current_charge || 0, 1);
-      document.getElementById("pt-bat-capacity").textContent = num(batteries.total_capacity || 0, 1);
-      document.getElementById("pt-production").textContent = `${num(production.solar || 0, 1)} / ${num(production.wind || 0, 1)}`;
-
-      document.getElementById("pt-thermostat").textContent = textOr(home.thermostat, "-");
-      document.getElementById("pt-fan").textContent = textOr(home.fan_speed, "-");
-      document.getElementById("pt-ac").textContent = textOr(home.ac_power, "-");
-
-      const activeRed = Boolean(security.code_red || security.motion_detected);
-      const modeEl = document.getElementById("pt-mode");
-      modeEl.textContent = activeRed ? "CODE RED" : "SAFE";
-      modeEl.className = activeRed ? "pt-state-alert" : "pt-state-safe";
-      document.getElementById("pt-gate").textContent = textOr(security.gate_status, "-");
-      document.getElementById("pt-motion").textContent = security.motion_detected ? "detected" : "clear";
-    }
-
-    async function refreshPacketTracer() {
-      try {
-        const status = await fetchPacketTracerStatus();
-        renderPacketTracer(status);
-      } catch (_) {
-        // Keep existing values when Packet Tracer bridge is not yet publishing.
-      }
-    }
-
-    function ensureNodes() {
-      const host = document.getElementById("topology");
-      host.querySelectorAll(".node").forEach(n => n.remove());
-
-      TOPOLOGY.generators.forEach(g => {
-        host.insertAdjacentHTML("beforeend", `
-          <div id="node-gen-${g.id}" class="node generator" style="left:${g.x/10}%;top:${g.y/6.6}%">
-            <div class="name">${g.id}</div>
-            <div class="meta">${g.type}</div>
-          </div>
-        `);
-      });
-
-      TOPOLOGY.buses.forEach(b => {
-        host.insertAdjacentHTML("beforeend", `
-          <div id="node-bus-${b.id}" class="node" style="left:${b.x/10}%;top:${b.y/6.6}%">
-            <div class="name">Bus ${b.id}</div>
-            <div class="meta" id="node-meta-${b.id}">0.000 kW</div>
-          </div>
-        `);
-      });
-
-      TOPOLOGY.zones.forEach(z => {
-        host.insertAdjacentHTML("beforeend", `
-          <div id="node-zone-${z.id}" class="node zone" style="left:${z.x/10}%;top:${z.y/6.6}%">
-            <div class="name">${z.id.toUpperCase()}</div>
-            <div class="meta">Sensor Cluster</div>
-          </div>
-        `);
-      });
-    }
-
-    function line(x1, y1, x2, y2, cls, speed, alpha) {
-      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="flow-line ${cls}" style="--speed:${speed}s;--alpha:${alpha}"></line>`;
-    }
-
-    function renderFlow(buses) {
-      const busMap = byBus(buses);
-      const svg = document.getElementById("flow-svg");
-      const output = [];
-
-      TOPOLOGY.generators.forEach(g => {
-        const bus = busMap[g.bus] || {};
-        const p1 = nodeXY(g.id, "generator");
-        const p2 = nodeXY(g.bus, "bus");
-        const load = Number(bus.consumption || 0);
-        const underAttack = (bus.attack_type || "normal") !== "normal";
-        const cls = underAttack ? "attack" : (load > 5.0 ? "warning" : "");
-        const speed = Math.max(0.45, 1.7 - load * 0.12);
-        const alpha = Math.min(0.95, 0.45 + Number(bus.current || 0) / 28);
-        output.push(line(p1.x, p1.y, p2.x, p2.y, cls, num(speed, 2), num(alpha, 2)));
-      });
-
-      RING_CONNECTIONS.forEach(([a, b]) => {
-        const ba = busMap[a] || {};
-        const bb = busMap[b] || {};
-        const p1 = nodeXY(a, "bus");
-        const p2 = nodeXY(b, "bus");
-        const load = (Number(ba.consumption || 0) + Number(bb.consumption || 0)) / 2;
-        const attack = (ba.attack_type || "normal") !== "normal" || (bb.attack_type || "normal") !== "normal";
-        const cls = attack ? "attack" : (load > 3.5 ? "warning" : "");
-        const speed = Math.max(0.35, 1.8 - load * 0.16);
-        const alpha = Math.min(0.88, 0.35 + (Number(ba.current || 0) + Number(bb.current || 0)) / 65);
-        output.push(line(p1.x, p1.y, p2.x, p2.y, cls, num(speed, 2), num(alpha, 2)));
-      });
-
-      TOPOLOGY.zones.forEach(z => {
-        const bus = busMap[z.bus] || {};
-        const p1 = nodeXY(z.bus, "bus");
-        const p2 = nodeXY(z.id, "zone");
-        const attack = (bus.attack_type || "normal") !== "normal";
-        const cls = attack ? "attack" : "";
-        const speed = attack ? 0.35 : 1.6;
-        const alpha = attack ? 0.9 : 0.4;
-        output.push(line(p1.x, p1.y, p2.x, p2.y, cls, num(speed, 2), num(alpha, 2)));
-      });
-
-      svg.innerHTML = output.join("");
-    }
-
-    function renderTables(buses) {
-      const sorted = [...buses].sort((a, b) => a.bus_id - b.bus_id);
-
-      document.getElementById("generation-table").innerHTML = TOPOLOGY.generators.map(g => {
-        const bus = sorted.find(x => x.bus_id === g.bus) || {};
-        const alarm = (bus.attack_type || "normal") !== "normal";
-        return `
-          <tr>
-            <td>${g.label}</td>
-            <td>${g.type}</td>
-            <td>Bus ${g.bus}</td>
-            <td class="${alarm ? "status-alert" : "status-ok"}">${alarm ? "IMPacted" : "ONLINE"}</td>
-          </tr>
-        `;
-      }).join("");
-
-      document.getElementById("bus-table").innerHTML = sorted.map(b => {
-        const attack = b.attack_type !== "normal";
-        return `
-          <tr>
-            <td>${b.bus_id}</td>
-            <td>${num(b.voltage, 4)} pu</td>
-            <td>${num(b.current, 2)} A</td>
-            <td>${num(b.consumption, 3)} kW</td>
-            <td class="${attack ? "status-alert" : "status-ok"}">${attack ? b.attack_type.toUpperCase() : "NORMAL"}</td>
-          </tr>
-        `;
-      }).join("");
-
-      document.getElementById("zone-table").innerHTML = TOPOLOGY.zones.map(z => {
-        const bus = sorted.find(x => x.bus_id === z.bus) || {};
-        const attack = (bus.attack_type || "normal") !== "normal";
-        return `
-          <tr>
-            <td>${z.id}</td>
-            <td>${z.bus}</td>
-            <td>motion, cam, gate</td>
-            <td class="${attack ? "status-alert" : "status-ok"}">${attack ? "CODE RED" : "SAFE"}</td>
-          </tr>
-        `;
-      }).join("");
-
-      sorted.forEach(b => {
-        const meta = document.getElementById(`node-meta-${b.bus_id}`);
-        if (meta) meta.textContent = `${num(b.consumption, 2)} kW`;
-
-        const node = document.getElementById(`node-bus-${b.bus_id}`);
-        if (node) {
-          if (b.attack_type !== "normal") node.classList.add("attack");
-          else node.classList.remove("attack");
+  _pollBackend = async () => {
+    const mid = this._METER_IDS[this._feedIdx % this._METER_IDS.length];
+    this._feedIdx++;
+    const zoneLetter = this._METER_ZONES[mid];
+    const uiType = this._METER_TYPES[mid];
+    const mtype = this._MODEL_TYPE[uiType] || 'residentiel';
+    const [lo, hi] = this._TYPE_KW[mtype];
+    // realistic reading in the model's expected format:
+    //  - zone as "Zone A" (not "A"), type as residentiel/commercial/industriel
+    //  - consumption in the meter's normal band, V~230, pf~0.9, f~60Hz
+    const kw = lo + Math.random() * (hi - lo);
+    const volt = 226 + Math.random() * 8;
+    const pf = 0.88 + Math.random() * 0.06;
+    const reading = {
+      meter_id: mid, consommation_kw: +kw.toFixed(3), tension_v: +volt.toFixed(2),
+      courant_a: +((kw * 1000) / volt).toFixed(3), power_factor: +pf.toFixed(3),
+      frequency_hz: +(60 + (Math.random() - 0.5) * 0.2).toFixed(2),
+      zone: 'Zone ' + zoneLetter, type: mtype, timestamp: new Date().toISOString(),
+    };
+    try {
+      const res = await fetch('/api/detect', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(reading) });
+      if (res.ok) {
+        this._backendOk = true;
+        const data = await res.json();
+        if (data.is_anomaly) {
+          const map = { fdia:'FDIA', dos:'DoS', fraud:'Fraud', fault:'Fault' };
+          const validAtk = map[String(data.attack_type||'').toLowerCase()] || 'FDIA';
+          // Add to the alerts panel but DO NOT hijack the screen — the detail
+          // popup opens only when the user clicks an alert.
+          this.triggerAnomaly(validAtk, mid, zoneLetter, false);
         }
+      }
+    } catch(e) {}
+  };
+
+  _pollBlockchain = async () => {
+    try {
+      const res = await fetch('/api/blockchain/status');
+      if (res.ok) { const data = await res.json(); if (data.blocks) this.setState({ blocks: data.blocks }); }
+    } catch(e) {}
+  };
+
+
+  tickClock() {
+    const d = new Date();
+    const p = (x) => String(x).padStart(2, '0');
+    this.setState({ clock: p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()), clockShort: p(d.getHours()) + ':' + p(d.getMinutes()) });
+  }
+  now() { const d = new Date(); const p = (x) => String(x).padStart(2, '0'); return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()); }
+
+  // ---------- anomaly model ----------
+  buildDetail(attack, meterId, zoneId) {
+    const b = this.buildings.find((x) => x.id === meterId) || { type: 'house' };
+    const zone = this.zones.find((z) => z.id === zoneId);
+    const base = {
+      attack, meterId, zoneId, zoneName: zone.name,
+      buildingType: this.typeLabels[b.type] || 'Bâtiment',
+    };
+    const D = (emoji, name, status, reading, reason, kW) => ({ emoji, name, status, reading, reason: reason || '', kW: kW || 0 });
+    if (attack === 'FDIA') {
+      return { ...base, score: 0.01420, threshold: 0.00035, confidence: 100, kW: 14.2, normalKw: 2.3, volt: 258, amp: 33, impact: 'Consommation falsifiée +517% · données injectées',
+        devices: [
+          D('🌡️', 'Thermostat', 'ERREUR', '47 °C', 'Données falsifiées', 0.1),
+          D('❄️', 'Climatiseur', 'OVER', '30.5 kW', 'Cycle forcé', 30.5),
+          D('💡', 'Éclairage', 'NORMAL', '0.4 kW', '', 0.4),
+          D('🧊', 'Réfrigérateur', 'NORMAL', '1.2 kW', '', 1.2),
+          D('📺', 'Téléviseur', 'NORMAL', '0.3 kW', '', 0.3),
+          D('🫧', 'Lave-linge', 'ERREUR', '1200 tr/min', 'Cycle forcé', 2.1),
+          D('⚡', 'Compteur', 'ERREUR', '14.2 kW', 'Lecture falsifiée', 14.2),
+          D('📡', 'Capteur', 'OFFLINE', '—', 'Pas de réponse', 0),
+          D('💻', 'Ordinateur', 'NORMAL', '0.2 kW', '', 0.2),
+        ],
+        xai: [
+          { name: 'power_factor', value: 758.3, attack: true },
+          { name: 'hour_sin', value: 55.8 },
+          { name: 'courant_a_diff', value: 12.4 },
+          { name: 'zone_consumption_mean', value: 5.1 },
+          { name: 'tension_v_rolling_mean_3', value: 1.8 },
+        ] };
+    }
+    if (attack === 'DoS') {
+      return { ...base, score: 0.00210, threshold: 0.00035, confidence: 98, kW: 0, normalKw: 4.1, volt: 0, amp: 0, impact: 'Communication coupée · 5 appareils hors ligne',
+        devices: [
+          D('📡', 'Passerelle', 'OFFLINE', '—', 'Communication coupée', 0),
+          D('⚡', 'Compteur', 'OFFLINE', '—', 'Pas de signal', 0),
+          D('📷', 'Caméra', 'OFFLINE', '—', 'Timeout', 0),
+          D('🌡️', 'Thermostat', 'OFFLINE', '—', 'Déconnecté', 0),
+          D('🖥️', 'Serveur', 'ERREUR', 'Timeout', 'File saturée', 1.4),
+          D('📱', 'Mobile', 'OFFLINE', '—', 'Hors réseau', 0),
+          D('💡', 'Éclairage', 'NORMAL', '0.5 kW', '', 0.5),
+          D('🧊', 'Réfrigérateur', 'NORMAL', '1.1 kW', '', 1.1),
+        ],
+        xai: [
+          { name: 'packet_loss_rate', value: 612.7, attack: true },
+          { name: 'response_latency', value: 188.2 },
+          { name: 'courant_a_diff', value: 9.1 },
+          { name: 'tension_v_rolling_mean_3', value: 4.4 },
+          { name: 'zone_consumption_mean', value: 2.0 },
+        ] };
+    }
+    if (attack === 'Fraud') {
+      return { ...base, score: 0.00890, threshold: 0.00035, confidence: 96, kW: 1.1, normalKw: 8.4, volt: 228, amp: 5, impact: 'Sous-déclaration · branchement illégal détecté',
+        devices: [
+          D('⚡', 'Compteur', 'ERREUR', '1.1 kW', 'Sous-déclaration', 1.1),
+          D('🔌', 'Dérivation', 'ERREUR', '+7.3 kW', 'Branchement illégal', 7.3),
+          D('❄️', 'Climatiseur', 'NORMAL', '3.1 kW', '', 3.1),
+          D('🧊', 'Réfrigérateur', 'NORMAL', '1.2 kW', '', 1.2),
+          D('💡', 'Éclairage', 'NORMAL', '0.6 kW', '', 0.6),
+          D('📺', 'Téléviseur', 'NORMAL', '0.4 kW', '', 0.4),
+          D('🫧', 'Lave-linge', 'NORMAL', '0.9 kW', '', 0.9),
+        ],
+        xai: [
+          { name: 'consumption_ratio', value: 481.0, attack: true },
+          { name: 'power_factor', value: 96.3 },
+          { name: 'hour_sin', value: 22.5 },
+          { name: 'courant_a_diff', value: 14.8 },
+          { name: 'zone_consumption_mean', value: 7.7 },
+        ] };
+    }
+    // Fault
+    return { ...base, score: 0.00150, threshold: 0.00035, confidence: 88, kW: 3.1, normalKw: 3.0, volt: 241, amp: 13, impact: 'Défaut équipement · surchauffe détectée',
+      devices: [
+        D('⚙️', 'Machine', 'ERREUR', 'Surchauffe', 'Défaut moteur', 5.2),
+        D('🌡️', 'Capteur Temp.', 'ERREUR', '92 °C', 'Défaut capteur', 0.1),
+        D('🔌', 'Disjoncteur', 'OVER', '18 A', 'Surcharge', 4.1),
+        D('💡', 'Éclairage', 'NORMAL', '0.5 kW', '', 0.5),
+        D('🧊', 'Réfrigérateur', 'NORMAL', '1.1 kW', '', 1.1),
+      ],
+      xai: [
+        { name: 'temp_rolling_max', value: 402.5, attack: true },
+        { name: 'courant_a_diff', value: 121.8 },
+        { name: 'power_factor', value: 33.1 },
+        { name: 'tension_v_rolling_mean_3', value: 9.0 },
+        { name: 'zone_consumption_mean', value: 3.3 },
+      ] };
+  }
+
+  makeAlert(attack, meterId, zoneId, time) {
+    const detail = this.buildDetail(attack, meterId, zoneId);
+    return { id: Math.random(), attack, meterId, zone: zoneId, score: detail.score, confidence: detail.confidence, time: time || this.now(), power: detail.kW, detail };
+  }
+
+  triggerAnomaly = (attack, meterId, zoneId, openPopup) => {
+    this.ensureData();
+    this.anomalyId = meterId;
+    const alert = this.makeAlert(attack, meterId, zoneId);
+    this.setState((s) => ({
+      alerts: [alert, ...s.alerts].slice(0, 20),
+      anomaly: alert.detail,
+      popupOpen: openPopup ? true : s.popupOpen,
+      activeTab: openPopup ? s.activeTab : s.activeTab,
+    }));
+  };
+  clearAnomaly = () => { this.anomalyId = null; };
+
+  openDetail = (detail) => { this.anomalyId = detail.meterId; this.setState({ popupOpen: true, anomaly: detail }); };
+
+  // ---------- handlers ----------
+  tabAlertes = () => this.setState({ activeTab: 'alertes' });
+  tabStats = () => this.setState({ activeTab: 'stats' });
+  tabXai = () => this.setState({ activeTab: 'xai' });
+  openDemo = () => this.setState({ demoOpen: true });
+  closeDemo = () => this.setState({ demoOpen: false });
+  openReport = () => this.setState({ reportOpen: true });
+  closeReport = () => this.setState({ reportOpen: false });
+  closePopup = () => this.setState({ popupOpen: false });
+  stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+
+  runDemo = () => {
+    this.stopDemo();
+    this.setState({ demoRunning: true, demoStep: 1 });
+    this._demoTimers = [];
+    const seq = [
+      () => { this.clearAnomaly(); this.setState({ popupOpen: false }); },
+      () => this.triggerAnomaly('FDIA', 'SM_0003', 'A', true),
+      () => this.triggerAnomaly('DoS', 'SM_0006', 'B', false),
+      () => this.triggerAnomaly('Fraud', 'SM_0011', 'C', false),
+      () => { this.clearAnomaly(); this.setState((s) => ({ blocks: s.blocks + 1 })); },
+    ];
+    seq.forEach((fn, i) => {
+      const t = setTimeout(() => {
+        this.setState({ demoStep: i + 1 });
+        fn();
+        if (i === seq.length - 1) {
+          const e = setTimeout(() => this.setState({ demoRunning: false }), 1600);
+          this._demoTimers.push(e);
+        }
+      }, i * 2500);
+      this._demoTimers.push(t);
+    });
+  };
+  stopDemo = () => { (this._demoTimers || []).forEach(clearTimeout); this._demoTimers = []; this.setState({ demoRunning: false }); };
+
+  downloadReport = () => {
+    const data = {
+      model: 'Transformer Autoencoder v2', auc: 0.9795, precision: 0.9984, recall: 0.952, f1: 0.975,
+      blockchain: { type: 'PoA', validators: 4, blocks: this.state.blocks },
+      anomalies: this.state.alerts.map((a) => ({ meter: a.meterId, zone: a.zone, attack: a.attack, score: a.score, confidence: a.confidence, time: a.time })),
+      generated: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'rapport_smartgrid.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  // ====================================================================
+  //  CANVAS ENGINE
+  // ====================================================================
+  canvasRef = (el) => {
+    if (el && el !== this.canvasEl) {
+      this.canvasEl = el;
+      this.ensureData();
+      el.addEventListener('click', this.onCanvasClick);
+      el.style.cursor = 'default';
+      cancelAnimationFrame(this._raf);
+      this._loop();
+    }
+  };
+  onCanvasClick = (e) => {
+    if (!this.anomalyId) return;
+    const L = this._layout; if (!L) return;
+    const r = this.canvasEl.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    const hit = L.builds.find((b) => b.id === this.anomalyId && Math.abs(b.x - mx) < 30 * b.s && my > b.y - 60 * b.s && my < b.y + 14 * b.s);
+    if (hit) this.openDetail(this.state.anomaly || this.buildDetail('FDIA', hit.id, this.zones[hit.zi].id));
+  };
+
+  _loop = () => { this.draw(); this._raf = requestAnimationFrame(this._loop); };
+
+  proj(t, d) {
+    const W = this._W, H = this._H;
+    const s = 1 - 0.62 * d;
+    const horizon = H * 0.15, frontY = H * 0.96;
+    const y = frontY - d * (frontY - horizon);
+    const x = W * 0.5 + t * (W * 0.47) * s;
+    return { x, y, s };
+  }
+  drawFloor(ctx) {
+    const W = this._W, H = this._H, light = this._light, horizon = H * 0.15;
+    const g = ctx.createLinearGradient(0, horizon - 60, 0, H);
+    if (light) { g.addColorStop(0, 'rgba(190,208,232,0)'); g.addColorStop(0.55, 'rgba(150,176,212,0.10)'); g.addColorStop(1, 'rgba(120,150,195,0.22)'); }
+    else { g.addColorStop(0, 'rgba(9,17,36,0)'); g.addColorStop(0.5, 'rgba(13,32,66,0.28)'); g.addColorStop(1, 'rgba(7,18,42,0.6)'); }
+    ctx.fillStyle = g; ctx.fillRect(0, horizon - 60, W, H);
+    const grid = light ? 'rgba(15,23,42,0.06)' : 'rgba(56,189,248,0.055)';
+    ctx.strokeStyle = grid; ctx.lineWidth = 1;
+    for (let i = 0; i <= 14; i++) { const t = -1.15 + (i / 14) * 2.3; const a = this.proj(t, 0.0), b = this.proj(t, 1.0); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+    for (let i = 0; i <= 11; i++) { let d = (i / 11 + (this.frame * 0.0009) % (1 / 11)); if (d > 1) d -= 1; const l = this.proj(-1.15, d), r = this.proj(1.15, d); ctx.globalAlpha = (1 - d) * (light ? 0.55 : 0.7); ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(r.x, r.y); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  box3d(ctx, x, baseY, w, h, s, face, top, side) {
+    const dx = 8 * s, dy = -5 * s, l = x - w / 2, r = x + w / 2, tY = baseY - h;
+    ctx.fillStyle = side; ctx.beginPath(); ctx.moveTo(r, baseY); ctx.lineTo(r + dx, baseY + dy); ctx.lineTo(r + dx, tY + dy); ctx.lineTo(r, tY); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = top; ctx.beginPath(); ctx.moveTo(l, tY); ctx.lineTo(l + dx, tY + dy); ctx.lineTo(r + dx, tY + dy); ctx.lineTo(r, tY); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = face; ctx.fillRect(l, tY, w, h);
+    return { l, r, tY, baseY, dx, dy };
+  }
+  drawPedestal(ctx, p) {
+    const w = 30 * p.s, dx = 6 * p.s;
+    ctx.fillStyle = this._light ? 'rgba(15,23,42,0.08)' : 'rgba(56,189,248,0.09)';
+    ctx.beginPath(); ctx.ellipse(p.x + dx, p.y + 2 * p.s, w * 0.7, w * 0.26, 0, 0, 7); ctx.fill();
+  }
+  draw() {
+    const c = this.canvasEl; if (!c) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = c.clientWidth, H = c.clientHeight;
+    if (!W || !H) return;
+    if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    this._W = W; this._H = H;
+    const light = this.state.theme === 'light'; this._light = light;
+
+    this.drawFloor(ctx);
+
+    const genT = [-0.80, -0.27, 0.27, 0.80], genD = 1.0;
+    const hvT = [-0.45, 0.45], hvD = 0.70;
+    const zoneT = [-0.74, -0.247, 0.247, 0.74], mvD = 0.45;
+    const builds = this.buildings.map((b) => { const t = zoneT[b.zi] + (b.slot - 2) * 0.108; const d = b.slot % 2 ? 0.05 : 0.22; const p = this.proj(t, d); return { ...b, t, d, x: p.x, y: p.y, s: p.s }; });
+    this._layout = { builds };
+
+    // zone floor quads
+    zoneT.forEach((zt, i) => {
+      const zc = this.zones[i];
+      const bl = this.proj(zt - 0.12, -0.02), br = this.proj(zt + 0.12, -0.02), tr = this.proj(zt + 0.12, 0.30), tl = this.proj(zt - 0.12, 0.30);
+      ctx.fillStyle = zc.color + (light ? '20' : '14');
+      ctx.beginPath(); ctx.moveTo(bl.x, bl.y); ctx.lineTo(br.x, br.y); ctx.lineTo(tr.x, tr.y); ctx.lineTo(tl.x, tl.y); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = zc.color + '50'; ctx.setLineDash([5, 4]); ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]);
+      const lab = this.proj(zt, 0.30);
+      ctx.fillStyle = zc.color; ctx.font = '700 ' + Math.round(12 * lab.s) + 'px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText('Zone ' + zc.id + ' · ' + zc.name, lab.x, lab.y - 5);
+    });
+
+    const lines = [];
+    lines.push(['hv0', { t: genT[0], d: genD }, { t: hvT[0], d: hvD }, 'hv'], ['hv1', { t: genT[1], d: genD }, { t: hvT[0], d: hvD }, 'hv'], ['hv2', { t: genT[2], d: genD }, { t: hvT[1], d: hvD }, 'hv'], ['hv3', { t: genT[3], d: genD }, { t: hvT[1], d: hvD }, 'hv']);
+    lines.push(['mv0', { t: hvT[0], d: hvD }, { t: zoneT[0], d: mvD }, 'mv'], ['mv1', { t: hvT[0], d: hvD }, { t: zoneT[1], d: mvD }, 'mv'], ['mv2', { t: hvT[1], d: hvD }, { t: zoneT[2], d: mvD }, 'mv'], ['mv3', { t: hvT[1], d: hvD }, { t: zoneT[3], d: mvD }, 'mv']);
+    builds.forEach((b) => lines.push(['lv_' + b.id, { t: zoneT[b.zi], d: mvD }, { t: b.t, d: b.d }, 'lv', b.id === this.anomalyId]));
+    lines.forEach((l) => this.drawLine(ctx, l[0], l[1], l[2], l[3], l[4]));
+
+    const gp = genT.map((t) => this.proj(t, genD));
+    this.drawPedestal(ctx, gp[0]); this.drawSolar(ctx, gp[0].x, gp[0].y, gp[0].s);
+    this.drawPedestal(ctx, gp[1]); this.drawWind(ctx, gp[1].x, gp[1].y, gp[1].s);
+    this.drawPedestal(ctx, gp[2]); this.drawThermal(ctx, gp[2].x, gp[2].y, gp[2].s); this.drawSmoke(ctx);
+    this.drawPedestal(ctx, gp[3]); this.drawHydro(ctx, gp[3].x, gp[3].y, gp[3].s);
+    const gl = ['☀ Solaire', '🌬 Éolien', '🔥 Thermique', '💧 Hydro'];
+    ctx.fillStyle = light ? '#64748b' : '#7c8aa3'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    gp.forEach((p, i) => { ctx.font = '600 ' + Math.round(10 * p.s) + 'px Inter, sans-serif'; ctx.fillText(gl[i], p.x, p.y + 9 * p.s); });
+
+    hvT.forEach((t) => { const p = this.proj(t, hvD); this.drawHV(ctx, p.x, p.y, p.s); ctx.fillStyle = '#3b82f6'; ctx.font = '600 ' + Math.round(10 * p.s) + 'px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('Poste HT/MT · 225 kV', p.x, p.y + 11 * p.s); });
+    zoneT.forEach((t, i) => { const p = this.proj(t, mvD); this.drawMV(ctx, p.x, p.y, p.s, this.zones[i].color); ctx.fillStyle = this.zones[i].color; ctx.font = '600 ' + Math.round(10 * p.s) + 'px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('Zone ' + this.zones[i].id + ' · 20 kV', p.x, p.y + 6 * p.s); });
+
+    builds.slice().sort((a, b) => b.d - a.d).forEach((b) => this.drawBuilding(ctx, b));
+    this.drawSparks(ctx);
+
+    this.frame++;
+  }
+
+  drawLine(ctx, id, a, b, tier, anom) {
+    const pa = this.proj(a.t, a.d), pb = this.proj(b.t, b.d);
+    const baseCol = this._light ? '15,23,42' : '120,180,240';
+    const grad = ctx.createLinearGradient(pa.x, pa.y, pb.x, pb.y);
+    grad.addColorStop(0, 'rgba(' + baseCol + ',0.04)'); grad.addColorStop(1, 'rgba(' + baseCol + ',0.16)');
+    ctx.strokeStyle = grad; ctx.lineWidth = tier === 'hv' ? 2.4 : tier === 'mv' ? 1.7 : 1.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+    const cfg = tier === 'hv' ? { n: 7, r: 3.4, s: 0.004, c: '#3b82f6' } : tier === 'mv' ? { n: 4, r: 2.4, s: 0.006, c: '#06b6d4' } : { n: 2, r: 1.9, s: 0.008, c: '#10b981' };
+    let arr = this.lineParts.get(id);
+    if (!arr) { arr = []; for (let i = 0; i < cfg.n; i++) arr.push(Math.random()); this.lineParts.set(id, arr); }
+    const col = anom ? '#ef4444' : cfg.c;
+    for (let i = 0; i < arr.length; i++) {
+      arr[i] += cfg.s; if (arr[i] > 1) arr[i] -= 1;
+      const p = arr[i], t = a.t + (b.t - a.t) * p, d = a.d + (b.d - a.d) * p, pp = this.proj(t, d);
+      const rr = (anom ? cfg.r + 0.7 : cfg.r) * pp.s;
+      ctx.shadowBlur = (anom ? 16 : 10) * pp.s; ctx.shadowColor = col; ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(pp.x, pp.y, Math.max(0.8, rr), 0, 7); ctx.fill();
+    }
+    ctx.shadowBlur = 0; ctx.lineCap = 'butt';
+  }
+
+  shade(hex, f) {
+    const m = hex.replace('#', ''); const r = parseInt(m.slice(0, 2), 16), g = parseInt(m.slice(2, 4), 16), b = parseInt(m.slice(4, 6), 16);
+    const a = (v) => Math.max(0, Math.min(255, Math.round(v * f)));
+    return 'rgb(' + a(r) + ',' + a(g) + ',' + a(b) + ')';
+  }
+  // prism with base at origin, extends up (-h). face center at 0.
+  prism(ctx, w, h, faceHex, dxr) {
+    const dx = (dxr == null ? 9 : dxr), dy = -6, l = -w / 2, r = w / 2, top = -h;
+    ctx.fillStyle = this.shade(faceHex, 0.72); ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(r + dx, dy); ctx.lineTo(r + dx, top + dy); ctx.lineTo(r, top); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = this.shade(faceHex, 1.18); ctx.beginPath(); ctx.moveTo(l, top); ctx.lineTo(l + dx, top + dy); ctx.lineTo(r + dx, top + dy); ctx.lineTo(r, top); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = faceHex; ctx.fillRect(l, top, w, h);
+  }
+  drawSolar(ctx, x, y, s) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    const cols = 4, rows = 3, cw = 9, ch = 6, gap = 2, tilt = 5;
+    const tw = cols * (cw + gap) - gap, th = rows * (ch + gap) - gap, ox = -tw / 2, oy = -th - 6;
+    ctx.fillStyle = '#475569'; ctx.fillRect(-2, oy + th, 4, 8);
+    ctx.fillStyle = this._light ? '#9fb2cc' : '#0a1426'; ctx.beginPath(); ctx.moveTo(ox - 3, oy + th); ctx.lineTo(ox - 3 + tilt, oy - 3); ctx.lineTo(ox + tw + 3 + tilt, oy - 3); ctx.lineTo(ox + tw + 3, oy + th); ctx.closePath(); ctx.fill();
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const bri = 0.3 + 0.6 * (0.5 + 0.5 * Math.sin(this.frame * 0.05 + (c + r) * 0.7));
+      ctx.fillStyle = 'rgba(59,130,246,' + bri.toFixed(2) + ')';
+      const px = ox + c * (cw + gap), py = oy + r * (ch + gap), sk = tilt * (1 - (py - oy) / th);
+      ctx.beginPath(); ctx.moveTo(px + sk, py); ctx.lineTo(px + cw + sk, py); ctx.lineTo(px + cw + sk - tilt / rows, py + ch); ctx.lineTo(px + sk - tilt / rows, py + ch); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+  drawWind(ctx, x, y, s) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    ctx.strokeStyle = this._light ? '#94a3b8' : '#52617a'; ctx.lineWidth = 3.2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -30); ctx.stroke();
+    ctx.fillStyle = '#cbd5e1'; ctx.beginPath(); ctx.arc(0, -30, 3, 0, 7); ctx.fill();
+    const a0 = this.frame * Math.PI / 90;
+    for (let k = 0; k < 3; k++) { const a = a0 + k * 2.094; ctx.strokeStyle = '#eef2f8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, -30); const ex = Math.cos(a) * 19, ey = Math.sin(a) * 19; ctx.lineTo(ex * 0.5 - ey * 0.06, -30 + ey * 0.5 + ex * 0.06); ctx.lineTo(ex, -30 + ey); ctx.stroke(); }
+    ctx.lineCap = 'butt'; ctx.restore();
+  }
+  drawThermal(ctx, x, y, s) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    this.prism(ctx, 36, 20, this._light ? '#8295ad' : '#1c2b45', 8);
+    ctx.fillStyle = this._light ? '#6b7d96' : '#2b3a55'; ctx.fillRect(-12, -34, 7, 16); ctx.fillRect(5, -34, 7, 16);
+    ctx.fillStyle = this.shade(this._light ? '#6b7d96' : '#2b3a55', 1.2); ctx.fillRect(-12, -36, 7, 3); ctx.fillRect(5, -36, 7, 3);
+    ctx.restore();
+    if (this.frame % 6 === 0) { this.smoke.push({ x: x - 8.5 * s, y: y - 36 * s, r: 2 * s, life: 1, g: s }); this.smoke.push({ x: x + 8.5 * s, y: y - 36 * s, r: 2 * s, life: 1, g: s }); }
+  }
+  drawSmoke(ctx) {
+    for (let i = this.smoke.length - 1; i >= 0; i--) {
+      const s = this.smoke[i]; s.y -= 0.6 * (s.g || 1); s.r += 0.22 * (s.g || 1); s.life -= 0.012;
+      if (s.life <= 0) { this.smoke.splice(i, 1); continue; }
+      ctx.fillStyle = 'rgba(' + (this._light ? '120,140,170' : '148,163,184') + ',' + (s.life * 0.34).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+    }
+  }
+  drawHydro(ctx, x, y, s) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    this.prism(ctx, 40, 18, this._light ? '#8295ad' : '#26344d', 8);
+    ctx.fillStyle = this._light ? 'rgba(6,182,212,.35)' : 'rgba(6,182,212,.22)'; ctx.fillRect(-20, -18, 40, 6);
+    ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 1.8; ctx.beginPath();
+    for (let i = 0; i <= 40; i++) { const px = -20 + i, py = -16 + Math.sin(this.frame * 0.12 + i * 0.4) * 2; if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
+    ctx.stroke();
+    ctx.strokeStyle = '#0891b2'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, -6, 5, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
+  drawHV(ctx, x, y, s) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    this.prism(ctx, 50, 16, this._light ? '#aebfd6' : '#15233d', 7);
+    ctx.setLineDash([4, 3]); ctx.strokeStyle = 'rgba(59,130,246,0.45)'; ctx.lineWidth = 1; ctx.strokeRect(-25, -16, 50, 16); ctx.setLineDash([]);
+    [-10, 10].forEach((dx) => { ctx.strokeStyle = '#3b82f6'; ctx.shadowBlur = 6; ctx.shadowColor = '#3b82f6'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(dx, -10, 4.5, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(dx, -5, 4.5, 0, 7); ctx.stroke(); });
+    ctx.shadowBlur = 0; ctx.restore();
+  }
+  drawMV(ctx, x, y, s, color) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    ctx.shadowBlur = 10; ctx.shadowColor = color; ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, 12, 0, 7); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(0, 0, 7, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
+
+  drawBuilding(ctx, b) {
+    const anom = b.id === this.anomalyId, s = b.s;
+    const o = { anom, flash: Math.floor(this.frame / 8) % 2 === 0, zoneColor: this.zones[b.zi].color, frame: this.frame, light: this._light };
+    // contact shadow
+    ctx.fillStyle = this._light ? 'rgba(15,23,42,0.10)' : 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(b.x + 5 * s, b.y + 2 * s, 24 * s, 7 * s, 0, 0, 7); ctx.fill();
+    ctx.save(); ctx.translate(b.x, b.y); ctx.scale(s, s);
+    if (anom) { ctx.shadowBlur = 22; ctx.shadowColor = '#ef4444'; }
+    const fn = { house: 'drawHouse', apartment: 'drawApartment', office: 'drawOffice', hospital: 'drawOffice', school: 'drawOffice', factory: 'drawFactory', warehouse: 'drawWarehouse' }[b.type];
+    this[fn](ctx, o);
+    ctx.restore();
+    // status LED (world space, scaled)
+    ctx.fillStyle = anom ? '#ef4444' : '#10b981';
+    if (anom) { ctx.shadowBlur = 8; ctx.shadowColor = '#ef4444'; }
+    ctx.beginPath(); ctx.arc(b.x + 16 * s, b.y - 4 * s, 2.2 * s, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+    if (anom) {
+      const by = b.y - (54 + Math.sin(this.frame * 0.1) * 4) * s;
+      ctx.fillStyle = '#ef4444'; ctx.shadowBlur = 14; ctx.shadowColor = '#ef4444';
+      ctx.beginPath(); ctx.arc(b.x, by, 9 * s, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fff'; ctx.font = '700 ' + Math.round(13 * s) + "px Inter, sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', b.x, by + 0.5);
+      if (this.frame % 14 === 0) for (let k = 0; k < 11; k++) { const a = Math.random() * 6.28, sp = (1 + Math.random() * 2.6) * s; this.sparks.push({ x: b.x, y: b.y - 14 * s, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 1 }); }
+    }
+    ctx.fillStyle = anom ? '#fca5a5' : (this._light ? '#64748b' : '#475569'); ctx.font = '600 ' + Math.round(9 * s) + "px 'JetBrains Mono', monospace"; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(b.id, b.x, b.y + 6 * s);
+  }
+  wallHex(o) { return o.anom ? (o.flash ? '#5b1414' : '#7f1d1d') : (o.light ? '#c2cee0' : '#1a2942'); }
+  roofHex(o) { return o.anom ? '#991b1b' : (o.light ? '#9aabc4' : '#283a58'); }
+  winLit(o) { return o.anom ? '#fca5a5' : '#fbbf24'; }
+  drawHouse(ctx, o) {
+    const w = 32, h = 22;
+    this.prism(ctx, w, h, this.wallHex(o), 8);
+    // gable roof
+    ctx.fillStyle = this.roofHex(o); ctx.beginPath(); ctx.moveTo(-w / 2 - 2, -h); ctx.lineTo(0, -h - 13); ctx.lineTo(w / 2 + 2, -h); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = this.shade(this.roofHex(o), 1.2); ctx.beginPath(); ctx.moveTo(w / 2 + 2, -h); ctx.lineTo(0, -h - 13); ctx.lineTo(8, -h - 19); ctx.lineTo(w / 2 + 10, -h - 6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = this.winLit(o); ctx.fillRect(-11, -h + 5, 8, 7); ctx.fillRect(3, -h + 5, 8, 7);
+    ctx.fillStyle = o.light ? '#5b6b82' : '#0a1220'; ctx.fillRect(-3, -10, 8, 10);
+  }
+  drawApartment(ctx, o) {
+    const w = 26, h = 36;
+    this.prism(ctx, w, h, this.wallHex(o), 8);
+    ctx.fillStyle = this.winLit(o);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 2; c++) ctx.fillRect(-8 + c * 10, -h + 5 + r * 10, 7, 6);
+  }
+  drawOffice(ctx, o) {
+    const w = 38, h = 30;
+    this.prism(ctx, w, h, this.wallHex(o), 9);
+    ctx.fillStyle = o.anom ? 'rgba(252,165,165,.9)' : (o.light ? 'rgba(37,99,235,.5)' : 'rgba(56,189,248,.55)');
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) ctx.fillRect(-16 + c * 9, -h + 5 + r * 9, 7, 6);
+  }
+  drawFactory(ctx, o) {
+    const w = 42, h = 22;
+    ctx.fillStyle = this._light ? '#7c8ca6' : '#16243c'; ctx.fillRect(-10, -h - 12, 5, 12); ctx.fillRect(-2, -h - 16, 5, 16);
+    this.prism(ctx, w, h, this.wallHex(o), 9);
+    ctx.fillStyle = o.light ? '#5b6b82' : '#0a1220'; ctx.fillRect(-18, -h + 4, 17, 12);
+    this.drawGear(ctx, -12, -h + 10, 4.5, 8, o.frame * 0.045, '#06b6d4');
+    this.drawGear(ctx, -5, -h + 10, 3.4, 7, -o.frame * 0.045 * 1.4, '#3b82f6');
+    ctx.fillStyle = o.light ? '#5b6b82' : '#0a1220'; ctx.fillRect(2, -h + 6, 17, 8);
+    for (let i = 0; i < 3; i++) { const bx = 3 + ((o.frame * 1.8 + i * 7) % 15); ctx.fillStyle = '#fbbf24'; ctx.fillRect(bx, -h + 8, 4, 4); }
+    for (let i = 0; i < 3; i++) { const on = i === 1 ? Math.floor(o.frame / 24) % 2 === 0 : true; ctx.fillStyle = on ? (i === 0 ? '#10b981' : i === 1 ? '#f59e0b' : '#3b82f6') : '#1e293b'; ctx.beginPath(); ctx.arc(-12 + i * 5, -3, 1.6, 0, 7); ctx.fill(); }
+  }
+  drawWarehouse(ctx, o) {
+    const w = 42, h = 20;
+    this.prism(ctx, w, h, this.wallHex(o), 9);
+    ctx.fillStyle = this.roofHex(o); ctx.beginPath(); ctx.moveTo(-w / 2, -h); ctx.lineTo(-w / 2 + 9, -h - 7); ctx.lineTo(w / 2, -h - 7); ctx.lineTo(w / 2, -h); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = this.shade(this.roofHex(o), 1.2); ctx.beginPath(); ctx.moveTo(w / 2, -h - 7); ctx.lineTo(w / 2 + 9, -h - 13); ctx.lineTo(w / 2 + 9, -h - 6); ctx.lineTo(w / 2, -h); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = o.light ? '#8595ad' : '#334155'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.moveTo(-w / 2 + 4, -h + 6 + i * 7); ctx.lineTo(-6, -h + 6 + i * 7); ctx.stroke(); }
+    ctx.fillStyle = o.light ? '#5b6b82' : '#0a1220'; ctx.fillRect(4, -15, 14, 15);
+    ctx.fillStyle = '#f59e0b'; for (let i = 0; i < 4; i++) ctx.fillRect(4, -14 + i * 4, 14, 1.5);
+    const fx = -13 + Math.sin(o.frame * 0.04) * 8;
+    ctx.fillStyle = '#f97316'; ctx.fillRect(fx, -5, 7, 5);
+    ctx.fillStyle = '#fbbf24'; ctx.fillRect(fx + 7, -8, 2.5, 8);
+    ctx.fillStyle = o.light ? '#5b6b82' : '#0a1220'; ctx.beginPath(); ctx.arc(fx + 1.5, 0, 1.5, 0, 7); ctx.arc(fx + 5.5, 0, 1.5, 0, 7); ctx.fill();
+  }
+  drawGear(ctx, cx, cy, r, teeth, ang, color) {
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang); ctx.fillStyle = color;
+    for (let i = 0; i < teeth; i++) { ctx.rotate(Math.PI * 2 / teeth); ctx.fillRect(r - 1, -1.2, 3, 2.4); }
+    ctx.beginPath(); ctx.arc(0, 0, r - 1, 0, 7); ctx.fill();
+    ctx.fillStyle = '#0a1220'; ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, 7); ctx.fill(); ctx.restore();
+  }
+  drawSparks(ctx) {
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const s = this.sparks[i]; s.vy += 0.06; s.x += s.vx; s.y += s.vy; s.life -= 0.03;
+      if (s.life <= 0) { this.sparks.splice(i, 1); continue; }
+      ctx.fillStyle = 'rgba(249,115,22,' + s.life.toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(s.x, s.y, 1.6, 0, 7); ctx.fill();
+    }
+  }
+
+  // ====================================================================
+  //  RENDER VALUES
+  // ====================================================================
+  tabStyle(active, color) {
+    return { flex: 1, padding: '11px 0', textAlign: 'center', fontSize: '10.5px', fontWeight: 700, letterSpacing: '.06em', cursor: 'pointer', fontFamily: 'inherit', background: 'transparent', border: 'none', borderBottom: '2px solid ' + (active ? color : 'transparent'), color: active ? 'var(--text)' : 'var(--text3)', transition: 'color .15s' };
+  }
+  statusMeta(st) {
+    return ({ NORMAL: { color: '#10b981', label: 'NORMAL' }, ERREUR: { color: '#ef4444', label: 'ERREUR' }, OFFLINE: { color: '#4a5568', label: 'HORS LIGNE' }, OVER: { color: '#f97316', label: 'SURCHARGÉ' } })[st];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const at = (k) => this.attacks[k];
+    const zoneName = (id) => (this.zones.find((z) => z.id === id) || {}).name || '';
+
+    const alerts = s.alerts.map((a) => {
+      const m = at(a.attack);
+      return { ...a, attackColor: m.color, attackBg: m.color + '1f', attackIcon: m.icon, badge: m.badge, zoneName: zoneName(a.zone), scoreFmt: a.score.toFixed(5), powerPct: Math.min(100, (a.power / 15) * 100), open: () => this.openDetail(a.detail) };
+    });
+
+    // anomaly view
+    const an = s.anomaly;
+    let anomVals = {};
+    if (an) {
+      const m = at(an.attack);
+      const devices = an.devices.map((d) => {
+        const sm = this.statusMeta(d.status);
+        return { ...d, statusColor: sm.color, statusBg: sm.color + '22', statusLabel: sm.label, topColor: sm.color, hasReason: !!d.reason, powerPct: Math.min(100, (d.kW / 32) * 100), cardStyle: { position: 'relative', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 10px 12px', overflow: 'hidden', animation: d.status === 'ERREUR' ? 'errGlow 1.2s infinite' : 'none' } };
       });
-    }
-
-    function renderStats(buses) {
-      const active = buses.filter(b => b.attack_type !== "normal").length;
-      const totalLoad = buses.reduce((s, b) => s + Number(b.consumption || 0), 0);
-      const avgFreq = buses.length ? buses.reduce((s, b) => s + Number(b.frequency || 0), 0) / buses.length : 0;
-      const generation = totalLoad * 1.08;
-
-      document.getElementById("stat-buses").textContent = String(buses.length);
-      document.getElementById("stat-generation").textContent = `${num(generation, 2)} kW`;
-      document.getElementById("stat-load").textContent = `${num(totalLoad, 2)} kW`;
-      document.getElementById("stat-attacks").textContent = String(active);
-      document.getElementById("stat-frequency").textContent = `${num(avgFreq, 3)} Hz`;
-    }
-
-    function renderAlerts(alerts) {
-      const root = document.getElementById("alerts");
-      if (!alerts.length) {
-        root.innerHTML = '<div class="muted">No alerts yet</div>';
-        return;
-      }
-
-      root.innerHTML = alerts.slice().reverse().map(a => `
-        <div class="alert">
-          <div><strong>${a.attack_type.toUpperCase()}</strong> at Bus ${a.bus_id}</div>
-          <div>${a.description}</div>
-          <div class="muted">confidence=${num(a.confidence, 2)} time=${new Date(a.timestamp * 1000).toLocaleTimeString()}</div>
-        </div>
-      `).join("");
-    }
-
-    async function refresh() {
-      try {
-        const [gridData, alertData] = await Promise.all([fetchGrid(), fetchAlerts()]);
-        const buses = gridData.buses || [];
-        applyBusFrame(buses);
-        renderAlerts(alertData.alerts || []);
-        document.getElementById("last-update").textContent =
-          `Live at ${new Date().toLocaleTimeString()} | stream mode: REST fallback | circulation animation active`;
-      } catch (err) {
-        document.getElementById("last-update").textContent = `Data stream error: ${err.message}`;
-      }
-    }
-
-    function applyBusFrame(buses) {
-      renderStats(buses);
-      renderFlow(buses);
-      renderTables(buses);
-    }
-
-    let ws = null;
-    let wsConnected = false;
-    let wsWatchdog = null;
-    let fallbackPoll = null;
-
-    function wsUrl() {
-      const proto = window.location.protocol === "https:" ? "wss" : "ws";
-      return `${proto}://${window.location.host}/ws`;
-    }
-
-    function setStatus(text) {
-      document.getElementById("last-update").textContent = text;
-    }
-
-    function startFallbackPolling() {
-      if (fallbackPoll) return;
-      fallbackPoll = setInterval(() => {
-        refresh();
-      }, 1000);
-    }
-
-    function stopFallbackPolling() {
-      if (!fallbackPoll) return;
-      clearInterval(fallbackPoll);
-      fallbackPoll = null;
-    }
-
-    function connectWebSocket() {
-      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-        return;
-      }
-
-      ws = new WebSocket(wsUrl());
-
-      ws.onopen = () => {
-        wsConnected = true;
-        stopFallbackPolling();
-        setStatus(`Live at ${new Date().toLocaleTimeString()} | stream mode: WebSocket /ws | circulation animation active`);
-        ws.send("get_data");
-        ws.send("get_alerts");
-      };
-
-      ws.onmessage = (ev) => {
-        try {
-          const msg = JSON.parse(ev.data);
-          if (msg.type === "update" || msg.type === "grid_data") {
-            const buses = msg.data || [];
-            applyBusFrame(buses);
-            setStatus(`Live at ${new Date().toLocaleTimeString()} | stream mode: WebSocket /ws | circulation animation active`);
-          } else if (msg.type === "alerts") {
-            renderAlerts(msg.data || []);
-          }
-        } catch (err) {
-          setStatus(`WebSocket decode error: ${err.message}`);
-        }
-      };
-
-      ws.onerror = () => {
-        wsConnected = false;
-        setStatus(`Live at ${new Date().toLocaleTimeString()} | stream mode: WebSocket error, using REST fallback`);
-        startFallbackPolling();
-      };
-
-      ws.onclose = () => {
-        wsConnected = false;
-        setStatus(`Live at ${new Date().toLocaleTimeString()} | stream mode: reconnecting WebSocket, REST fallback active`);
-        startFallbackPolling();
-        setTimeout(connectWebSocket, 1500);
+      const affected = an.devices.filter((d) => d.status !== 'NORMAL').slice(0, 3).map((d) => ({ emoji: d.emoji, name: d.name, dotColor: this.statusMeta(d.status).color }));
+      const hubOnline = an.attack !== 'DoS';
+      anomVals = {
+        anomIcon: m.icon, anomColor: m.color, anomAttack: m.badge, anomLabel: m.label, anomHeaderBg: m.color + '1a',
+        anomMeter: an.meterId, anomZone: an.zoneId, anomZoneName: an.zoneName, anomConfidence: an.confidence,
+        anomBuilding: an.buildingType, anomKw: an.kW, anomNormalKw: an.normalKw, anomVolt: an.volt, anomAmp: an.amp,
+        anomDeviceCount: an.devices.length, anomDevices: devices, anomAffected: affected,
+        anomEcart: an.normalKw ? Math.round(((an.kW - an.normalKw) / an.normalKw) * 100) : 0,
+        anomFillPct: Math.min(100, (an.kW / 32) * 100), anomImpact: an.impact,
+        hubColor: hubOnline ? '#10b981' : '#ef4444', hubBg: hubOnline ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)', hubLabel: hubOnline ? 'EN LIGNE' : 'HORS LIGNE', hubAnim: hubOnline ? '' : 'animation:pulseRed 1.2s infinite',
       };
     }
 
-    function startWatchdog() {
-      if (wsWatchdog) return;
-      wsWatchdog = setInterval(() => {
-        if (wsConnected && ws && ws.readyState === WebSocket.OPEN) {
-          ws.send("get_data");
-          ws.send("get_alerts");
-        }
-      }, 1000);
+    // XAI (last anomaly)
+    let xaiVals = { hasXai: false, noXai: true };
+    if (an) {
+      const m = at(an.attack);
+      const max = Math.max(...an.xai.map((f) => f.value));
+      xaiVals = {
+        hasXai: true, noXai: false, xaiIcon: m.icon, xaiColor: m.color, xaiAttack: m.badge, xaiMeter: an.meterId, xaiZone: an.zoneId, xaiConfidence: an.confidence,
+        xaiFeatures: an.xai.map((f) => ({ name: f.name, value: f.value.toFixed(1), pct: Math.max(3, (f.value / max) * 100), color: f.attack ? '#ef4444' : '#3b82f6' })),
+      };
     }
 
-    ensureNodes();
-    refresh();
-    connectWebSocket();
-    startWatchdog();
-    refreshPacketTracer();
-    setInterval(refreshPacketTracer, 1500);
-  </script>
+    // demo steps
+    const stepMeta = [
+      { label: 'Réseau Normal', sub: 'État sain · 20/20 compteurs', color: '#10b981', badge: '✓' },
+      { label: 'FDIA · Zone A', sub: 'Injection de fausses données', color: '#ef4444', badge: '⚠' },
+      { label: 'DoS · Zone B', sub: 'Déni de service', color: '#f97316', badge: '⚠' },
+      { label: 'Fraude · Zone C', sub: "Vol d'énergie", color: '#8b5cf6', badge: '⚠' },
+      { label: 'Notarisation Blockchain', sub: 'PoA · 4 validateurs', color: '#06b6d4', badge: '⛓' },
+    ];
+    const demoSteps = stepMeta.map((m, i) => {
+      const n = i + 1; const st = s.demoStep > n ? 'done' : s.demoStep === n ? 'active' : 'upcoming';
+      const circBg = st === 'done' ? m.color : st === 'active' ? m.color : '#1e293b';
+      return { ...m, mark: st === 'done' ? '✓' : String(n),
+        textColor: st === 'upcoming' ? 'var(--text3)' : 'var(--text)',
+        rowBg: st === 'active' ? m.color + '14' : 'var(--card)', rowBorder: st === 'active' ? m.color + '55' : 'var(--border)',
+        circleStyle: { width: '28px', height: '28px', flex: '0 0 auto', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: st === 'upcoming' ? 'var(--text3)' : '#fff', background: st === 'upcoming' ? 'var(--inset)' : circBg, animation: st === 'active' ? 'pulseRed 1.2s infinite' : 'none' } };
+    });
+
+    const versions = [
+      { name: 'v1', auc: '94.20', recall: '88.10', f1: '91.00', star: false },
+      { name: 'v2 ⭐', auc: '97.95', recall: '95.20', f1: '97.50', star: true },
+      { name: 'v3', auc: '97.10', recall: '96.80', f1: '96.90', star: false },
+    ].map((v) => ({ ...v, rowBg: v.star ? 'rgba(16,185,129,.08)' : 'transparent', nameColor: v.star ? '#10b981' : '#cbd5e1' }));
+
+    return {
+      clock: s.clock, clockShort: s.clockShort, blocks: s.blocks, alertCount: s.alertCount,
+      theme: s.theme, themeIcon: s.theme === 'dark' ? '☀️' : '🌙', toggleTheme: this.toggleTheme,
+      canvasRef: this.canvasRef,
+      openDemo: this.openDemo, closeDemo: this.closeDemo, openReport: this.openReport, closeReport: this.closeReport, closePopup: this.closePopup, stop: this.stop,
+      runDemo: this.runDemo, stopDemo: this.stopDemo, downloadReport: this.downloadReport,
+      tabAlertes: this.tabAlertes, tabStats: this.tabStats, tabXai: this.tabXai,
+      isAlertes: s.activeTab === 'alertes', isStats: s.activeTab === 'stats', isXai: s.activeTab === 'xai',
+      tabStyles: { alertes: this.tabStyle(s.activeTab === 'alertes', '#3b82f6'), stats: this.tabStyle(s.activeTab === 'stats', '#06b6d4'), xai: this.tabStyle(s.activeTab === 'xai', '#8b5cf6') },
+      alerts, hasAlerts: alerts.length > 0, noAlerts: alerts.length === 0,
+      popupOpen: s.popupOpen, demoOpen: s.demoOpen, reportOpen: s.reportOpen,
+      demoSteps,
+      modelMetrics: [
+        { label: 'AUC', value: '97.95%', color: '#3b82f6' },
+        { label: 'Précision', value: '99.84%', color: '#10b981' },
+        { label: 'Recall', value: '95.20%', color: '#ef4444' },
+        { label: 'F1-Score', value: '97.50%', color: '#8b5cf6' },
+      ],
+      attackStats: [
+        { label: 'FDIA', icon: '🎭', count: 4, color: '#ef4444' },
+        { label: 'DoS', icon: '🚫', count: 2, color: '#f97316' },
+        { label: 'Fraude', icon: '💰', count: 2, color: '#8b5cf6' },
+        { label: 'Défaut', icon: '⚡', count: 1, color: '#f59e0b' },
+      ],
+      infra: [
+        { label: 'Compteurs actifs', value: '20 / 20' },
+        { label: 'Générateurs', value: '4' },
+        { label: 'Blocs PoA', value: String(s.blocks) },
+        { label: 'Compteurs sains', value: '11' },
+      ],
+      reportBars: [
+        { label: 'AUC', value: '97.95%', pct: 97.95, grad: 'linear-gradient(90deg,#3b82f6,#06b6d4)' },
+        { label: 'Précision', value: '99.84%', pct: 99.84, grad: 'linear-gradient(90deg,#10b981,#06b6d4)' },
+        { label: 'Recall', value: '95.20%', pct: 95.2, grad: 'linear-gradient(90deg,#ef4444,#f59e0b)' },
+        { label: 'F1-Score', value: '97.50%', pct: 97.5, grad: 'linear-gradient(90deg,#8b5cf6,#3b82f6)' },
+      ],
+      versions,
+      ...anomVals, ...xaiVals,
+    };
+  }
+}
+</script>
+
+<!-- ============================================================
+     Phase 6 — Operational Health Widget (system health, model
+     status, blockchain sync, resource utilization).
+     Deliberately self-contained vanilla JS: its own DOM container,
+     own poll loop, zero shared state with the app above — so it can
+     be added without touching (or risking regressions in) the
+     existing dashboard bundle. Collapsible, bottom-right corner.
+     ============================================================ -->
+<div id="sg-health-widget" style="position:fixed;bottom:16px;right:16px;z-index:9999;
+     font-family:system-ui,-apple-system,sans-serif;font-size:12px;color:#e2e8f0;
+     background:#0f172acc;backdrop-filter:blur(8px);border:1px solid #334155;
+     border-radius:10px;box-shadow:0 4px 24px #000a;width:280px;overflow:hidden;">
+  <div id="sg-health-header" style="display:flex;justify-content:space-between;align-items:center;
+       padding:8px 12px;cursor:pointer;background:#1e293b;user-select:none;">
+    <span style="font-weight:600;">⚙ Système</span>
+    <span id="sg-health-dot" style="width:8px;height:8px;border-radius:50%;background:#64748b;"></span>
+  </div>
+  <div id="sg-health-body" style="padding:10px 12px;display:none;">
+    <div id="sg-health-rows">Chargement…</div>
+  </div>
+</div>
+<script>
+(function () {
+  var body = document.getElementById('sg-health-body');
+  var header = document.getElementById('sg-health-header');
+  var dot = document.getElementById('sg-health-dot');
+  var rows = document.getElementById('sg-health-rows');
+  var open = false;
+  header.addEventListener('click', function () {
+    open = !open;
+    body.style.display = open ? 'block' : 'none';
+  });
+
+  function row(label, value, color) {
+    return '<div style="display:flex;justify-content:space-between;padding:2px 0;">' +
+      '<span style="color:#94a3b8;">' + label + '</span>' +
+      '<span style="color:' + (color || '#e2e8f0') + ';font-weight:600;">' + value + '</span></div>';
+  }
+
+  async function poll() {
+    try {
+      var res = await fetch('/health/detailed');
+      var d = await res.json();
+      var ok = d.status === 'ok';
+      dot.style.background = ok ? '#22c55e' : '#ef4444';
+      var html = '';
+      html += row('API', ok ? 'OK' : 'DÉGRADÉ', ok ? '#22c55e' : '#ef4444');
+      html += row('Modèle IA', d.model && d.model.loaded ? 'Chargé' : 'Absent', d.model && d.model.loaded ? '#22c55e' : '#ef4444');
+      if (d.model && d.model.avg_latency_ms != null) html += row('Latence inférence', d.model.avg_latency_ms.toFixed(1) + ' ms');
+      html += row('Blockchain', d.blockchain && d.blockchain.available ? (d.blockchain.valid ? 'Valide' : 'INVALIDE') : 'Indisponible',
+                  d.blockchain && d.blockchain.valid ? '#22c55e' : '#ef4444');
+      if (d.blockchain && d.blockchain.blocks != null) html += row('Blocs PoA', d.blockchain.blocks);
+      if (d.resources && d.resources.cpu_percent != null) html += row('CPU', d.resources.cpu_percent.toFixed(0) + '%');
+      if (d.resources && d.resources.memory_mb != null) html += row('Mémoire', d.resources.memory_mb.toFixed(0) + ' MB');
+      html += row('Uptime', Math.floor(d.uptime_seconds / 60) + ' min');
+      rows.innerHTML = html;
+    } catch (e) {
+      dot.style.background = '#ef4444';
+      rows.innerHTML = row('API', 'Injoignable', '#ef4444');
+    }
+  }
+
+  poll();
+  setInterval(poll, 5000);
+})();
+</script>
 </body>
 </html>

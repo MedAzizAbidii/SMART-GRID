@@ -1,0 +1,29 @@
+{
+  "_comment": "DEV-ONLY user store, hashes only — no plaintext passwords in this file. Default dev passwords are documented in production/docs/operator_manual.md (change them before any non-local use). Swap this file for a real user table/IdP in production (see production/docs/deployment_guide.md).",
+  "users": [
+    {
+      "username": "admin",
+      "password_hash": "$2b$12$Z4k2dTSDHig8mLlf9nqCrOR16scv5rW/VpCLi7GKnZsVZEIO/wPJy",
+      "role": "administrator",
+      "full_name": "System Administrator"
+    },
+    {
+      "username": "operator",
+      "password_hash": "$2b$12$l.1QtlSPoy19W6E/Of/RTuuFdSXAktX323pXqyZM.hPOjjB/tE3Zm",
+      "role": "grid_operator",
+      "full_name": "Grid Operator"
+    },
+    {
+      "username": "analyst",
+      "password_hash": "$2b$12$OYopfn.7gn316iXz8AzF..e0SKZGhSTk4uSV9cfSJwE4J9Yqcu6tG",
+      "role": "analyst",
+      "full_name": "Security Analyst"
+    },
+    {
+      "username": "viewer",
+      "password_hash": "$2b$12$oC0UN2QbhqGLx1zx4vobjOWzW8opTIxAW72Qi2bcF2gToKz.PQQXS",
+      "role": "viewer",
+      "full_name": "Read-only Viewer"
+    }
+  ]
+}

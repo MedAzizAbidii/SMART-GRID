@@ -1,0 +1,31 @@
+digraph DataFlow {
+  rankdir=LR;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Flux de données — d'une lecture de compteur à la décision";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  READING [label="Lecture compteur\n(kW, V, A, cos φ, Hz,\nzone, type, horodatage)", fillcolor="#cde2fb"];
+  VALIDATE [label="Validation Pydantic\n(bornes de sécurité)", fillcolor="#b7d3f6"];
+  BUFFER [label="Buffer glissant\npar compteur\n(deque, seq_len=8)", fillcolor="#9ec5f4"];
+  FEATURES [label="Feature engineering\n(moy./écart mobiles,\ndiff, agrégats de zone,\ncycliques heure/jour)", fillcolor="#6da7ec"];
+  SCALE [label="Normalisation\n(StandardScaler,\najusté sur TRAIN uniquement)", fillcolor="#3987e5", fontcolor=white];
+  TENSOR [label="Tenseur de séquence\n(seq_len × input_dim=84)", fillcolor="#2a78d6", fontcolor=white];
+  MODEL [label="Transformer Autoencoder\n(reconstruction)", fillcolor="#256abf", fontcolor=white];
+  SCORE [label="Score d'anomalie\n(erreur de reconstruction)", fillcolor="#1c5cab", fontcolor=white];
+  CALIB [label="Calibration Platt\n(score brut → probabilité)", fillcolor="#8b5cf6", fontcolor=white];
+  THRESH [label="Comparaison au seuil\nadaptatif par compteur", fillcolor="#8b5cf6", fontcolor=white];
+  XAI [label="XAI\n(intégrated gradients +\nattention)", fillcolor="#4a3aa7", fontcolor=white];
+  DECISION [label="Décision\nnormal / anomalie\n+ type d'attaque", fillcolor="#1baf7a", fontcolor=white];
+  CHAIN [label="Notarisation blockchain\n(si anomalie confirmée)", fillcolor="#008300", fontcolor=white];
+  CLIENT [label="Dashboard / API client", fillcolor="#eda100"];
+
+  READING -> VALIDATE -> BUFFER -> FEATURES -> SCALE -> TENSOR -> MODEL -> SCORE;
+  SCORE -> CALIB -> THRESH -> DECISION;
+  MODEL -> XAI -> DECISION;
+  DECISION -> CHAIN [label="anomalie"];
+  DECISION -> CLIENT;
+  CHAIN -> CLIENT [label="preuve d'audit"];
+}

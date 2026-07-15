@@ -1,0 +1,71 @@
+{
+  "health_detailed_after": {
+    "name": "health_detailed_after_fix_ms",
+    "stats": {
+      "min": 5.638,
+      "max": 11.898,
+      "mean": 8.216,
+      "p50": 7.823,
+      "p90": 10.507,
+      "p95": 10.963,
+      "p99": 11.711,
+      "n": 15
+    }
+  },
+  "concurrency_after": {
+    "name": "concurrency_http_after_fix",
+    "by_level": {
+      "1": {
+        "wall_sec": 0.7,
+        "throughput_req_per_sec": 1.43,
+        "latency_ms": {
+          "min": 698.599,
+          "max": 698.599,
+          "mean": 698.599,
+          "p50": 698.599,
+          "p90": 698.599,
+          "p95": 698.599,
+          "p99": 698.599,
+          "n": 1
+        },
+        "status_counts": {
+          "200": 1
+        }
+      },
+      "5": {
+        "wall_sec": 2.16,
+        "throughput_req_per_sec": 2.31,
+        "latency_ms": {
+          "min": 2107.455,
+          "max": 2152.69,
+          "mean": 2136.943,
+          "p50": 2145.878,
+          "p90": 2152.599,
+          "p95": 2152.645,
+          "p99": 2152.681,
+          "n": 5
+        },
+        "status_counts": {
+          "200": 5
+        }
+      },
+      "10": {
+        "wall_sec": 0.03,
+        "throughput_req_per_sec": 379.37,
+        "latency_ms": {
+          "min": 6.421,
+          "max": 18.162,
+          "mean": 11.544,
+          "p50": 10.749,
+          "p90": 16.245,
+          "p95": 17.203,
+          "p99": 17.97,
+          "n": 10
+        },
+        "status_counts": {
+          "429": 10
+        }
+      }
+    }
+  }
+}

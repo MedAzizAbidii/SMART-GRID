@@ -1,0 +1,53 @@
+digraph OverallArchitecture {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Architecture globale — Plateforme de détection d'anomalies Smart Grid";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  subgraph cluster_data {
+    label="Génération de données"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    SIM [label="Simulateur Smart Grid\n(data_generation/)\n50 compteurs, 4 zones\n5 types d'attaques", fillcolor="#cde2fb"];
+  }
+
+  subgraph cluster_ai {
+    label="Pipeline IA"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    PREP [label="Prétraitement\n(fenêtres glissantes,\nfeature engineering)", fillcolor="#b7d3f6"];
+    MODEL [label="Transformer Autoencoder\n(dim=128, heads=4, layers=3)\nEnsembleDetector (v2+v3)", fillcolor="#2a78d6", fontcolor=white];
+    XAI [label="XAI\n(Attention + SHAP +\nIntegrated Gradients)", fillcolor="#9ec5f4"];
+  }
+
+  subgraph cluster_chain {
+    label="Blockchain"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    CHAIN [label="Registre PoA\n(SHA-256, 4 autorités)", fillcolor="#1baf7a", fontcolor=white];
+  }
+
+  subgraph cluster_backend {
+    label="Backend"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    API [label="API FastAPI\n(REST + WebSocket)\nAuth JWT + RBAC", fillcolor="#eda100"];
+    LOG [label="Logging structuré\n(5 flux JSON)", fillcolor="#f4cf7a"];
+    MON [label="Monitoring\n(/health, /metrics)", fillcolor="#f4cf7a"];
+  }
+
+  subgraph cluster_ui {
+    label="Interface"; style="rounded"; color="#c3c2b7"; fontsize=12;
+    DASH [label="Tableau de bord SCADA\n(dashboard/index.html)", fillcolor="#4a3aa7", fontcolor=white];
+  }
+
+  MOBILE [label="Application mobile\n(HORS PÉRIMÈTRE ACTUEL)", fillcolor="#e1e0d9", style="rounded,filled,dashed"];
+  SOLIDITY [label="Smart Contract Solidity\n(HORS PÉRIMÈTRE ACTUEL)", fillcolor="#e1e0d9", style="rounded,filled,dashed"];
+
+  SIM -> PREP [label="lectures compteurs"];
+  PREP -> MODEL [label="séquences normalisées"];
+  MODEL -> XAI [label="score + attention"];
+  MODEL -> API [label="résultat détection"];
+  XAI -> API [label="explications"];
+  API -> CHAIN [label="notarisation\n(si anomalie confirmée)"];
+  API -> LOG;
+  API -> MON;
+  API -> DASH [label="REST + WebSocket"];
+  API -> MOBILE [label="futur", style=dashed, color="#898781"];
+  CHAIN -> SOLIDITY [label="ancrage futur", style=dashed, color="#898781"];
+}

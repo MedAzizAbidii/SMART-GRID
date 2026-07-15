@@ -1,0 +1,39 @@
+SUPERVISED SMART-METER ANOMALY DETECTOR - TEST RESULTS
+======================================================================
+
+Dataset: donnees_smart_meters_sample.csv
+Model: ./ml_pipeline/models/supervised_smart_meter_detector.pkl
+Split: 70% training / 15% validation / 15% test
+Validation-tuned threshold: 0.325221
+Best validation F1-score: 0.9003
+
+DATASET SIZE
+----------------------------------------------------------------------
+Rows after cleaning: 98,256
+Train rows: 68,818
+Validation rows: 14,699
+Test rows: 14,739
+Test anomaly rows: 4,250 (28.84%)
+
+TEST METRICS
+----------------------------------------------------------------------
+Accuracy: 0.9489 (94.89%)
+Precision: 0.9861 (98.61%)
+Recall: 0.8346 (83.46%)
+F1-score: 0.9040 (90.40%)
+ROC-AUC: 0.9234 (92.34%)
+Average precision: 0.9210 (92.10%)
+
+CONFUSION MATRIX
+----------------------------------------------------------------------
+True positives: 3,547
+True negatives: 10,439
+False positives: 50
+False negatives: 703
+
+SHORT INTERPRETATION
+----------------------------------------------------------------------
+The model performs well on the held-out 15% test split.
+Precision is high, meaning false alarms are rare.
+Recall is good, but some anomalies are still missed.
+The model should still be validated on independent live data before production use.

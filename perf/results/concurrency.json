@@ -1,0 +1,312 @@
+{
+  "inprocess": {
+    "name": "concurrency_inprocess (shared detector instance, bounded thread pool)",
+    "pool_cap": 64,
+    "by_level": {
+      "1": {
+        "pool_workers": 1,
+        "wall_sec": 0.28,
+        "throughput_req_per_sec": 3.6,
+        "latency_ms": {
+          "min": 276.488,
+          "max": 276.488,
+          "mean": 276.488,
+          "p50": 276.488,
+          "p90": 276.488,
+          "p95": 276.488,
+          "p99": 276.488,
+          "n": 1
+        },
+        "errors": 0,
+        "timed_out_or_incomplete": 0,
+        "timeout_hit": false,
+        "resources": {
+          "n_samples": 1,
+          "duration_sec": 0.0,
+          "proc_cpu_avg": 221.1,
+          "proc_cpu_peak": 221.1,
+          "sys_cpu_avg": 0.0,
+          "sys_cpu_peak": 0.0,
+          "proc_mem_avg_mb": 287.69,
+          "proc_mem_peak_mb": 287.69,
+          "proc_mem_start_mb": 287.69,
+          "proc_mem_end_mb": 287.69,
+          "proc_mem_growth_mb": 0.0
+        }
+      },
+      "10": {
+        "pool_workers": 10,
+        "wall_sec": 1.99,
+        "throughput_req_per_sec": 5.04,
+        "latency_ms": {
+          "min": 1802.573,
+          "max": 1981.034,
+          "mean": 1913.077,
+          "p50": 1927.765,
+          "p90": 1971.025,
+          "p95": 1976.029,
+          "p99": 1980.033,
+          "n": 10
+        },
+        "errors": 0,
+        "timed_out_or_incomplete": 0,
+        "timeout_hit": false,
+        "resources": {
+          "n_samples": 3,
+          "duration_sec": 2.02,
+          "proc_cpu_avg": 437.53,
+          "proc_cpu_peak": 633.5,
+          "sys_cpu_avg": 66.3,
+          "sys_cpu_peak": 100.0,
+          "proc_mem_avg_mb": 302.51,
+          "proc_mem_peak_mb": 309.9,
+          "proc_mem_start_mb": 288.5,
+          "proc_mem_end_mb": 309.15,
+          "proc_mem_growth_mb": 20.65
+        }
+      },
+      "25": {
+        "pool_workers": 25,
+        "wall_sec": 5.38,
+        "throughput_req_per_sec": 4.65,
+        "latency_ms": {
+          "min": 4399.391,
+          "max": 5335.866,
+          "mean": 4925.625,
+          "p50": 4914.619,
+          "p90": 5249.851,
+          "p95": 5307.589,
+          "p99": 5332.286,
+          "n": 25
+        },
+        "errors": 0,
+        "timed_out_or_incomplete": 0,
+        "timeout_hit": false,
+        "resources": {
+          "n_samples": 6,
+          "duration_sec": 5.52,
+          "proc_cpu_avg": 496.1,
+          "proc_cpu_peak": 611.7,
+          "sys_cpu_avg": 82.37,
+          "sys_cpu_peak": 100.0,
+          "proc_mem_avg_mb": 341.28,
+          "proc_mem_peak_mb": 350.93,
+          "proc_mem_start_mb": 309.33,
+          "proc_mem_end_mb": 343.89,
+          "proc_mem_growth_mb": 34.55
+        }
+      },
+      "50": {
+        "pool_workers": 50,
+        "wall_sec": 12.87,
+        "throughput_req_per_sec": 3.88,
+        "latency_ms": {
+          "min": 10792.235,
+          "max": 12830.689,
+          "mean": 11887.796,
+          "p50": 11870.013,
+          "p90": 12710.055,
+          "p95": 12750.136,
+          "p99": 12810.741,
+          "n": 50
+        },
+        "errors": 0,
+        "timed_out_or_incomplete": 0,
+        "timeout_hit": false,
+        "resources": {
+          "n_samples": 13,
+          "duration_sec": 13.27,
+          "proc_cpu_avg": 545.55,
+          "proc_cpu_peak": 629.0,
+          "sys_cpu_avg": 89.56,
+          "sys_cpu_peak": 100.0,
+          "proc_mem_avg_mb": 404.4,
+          "proc_mem_peak_mb": 419.75,
+          "proc_mem_start_mb": 344.37,
+          "proc_mem_end_mb": 394.03,
+          "proc_mem_growth_mb": 49.66
+        }
+      },
+      "100": {
+        "pool_workers": 64,
+        "wall_sec": 29.53,
+        "throughput_req_per_sec": 3.39,
+        "latency_ms": {
+          "min": 8702.277,
+          "max": 20389.96,
+          "mean": 15697.612,
+          "p50": 18586.091,
+          "p90": 19742.559,
+          "p95": 20075.276,
+          "p99": 20354.736,
+          "n": 100
+        },
+        "errors": 0,
+        "timed_out_or_incomplete": 0,
+        "timeout_hit": false,
+        "resources": {
+          "n_samples": 30,
+          "duration_sec": 29.52,
+          "proc_cpu_avg": 574.03,
+          "proc_cpu_peak": 655.3,
+          "sys_cpu_avg": 96.42,
+          "sys_cpu_peak": 100.0,
+          "proc_mem_avg_mb": 464.98,
+          "proc_mem_peak_mb": 477.2,
+          "proc_mem_start_mb": 394.1,
+          "proc_mem_end_mb": 442.22,
+          "proc_mem_growth_mb": 48.12
+        }
+      },
+      "250": {
+        "pool_workers": 64,
+        "wall_sec": 92.83,
+        "throughput_req_per_sec": 2.69,
+        "latency_ms": {
+          "min": 16928.065,
+          "max": 26446.84,
+          "mean": 22916.449,
+          "p50": 23843.074,
+          "p90": 24756.857,
+          "p95": 25239.883,
+          "p99": 25798.284,
+          "n": 250
+        },
+        "errors": 0,
+        "timed_out_or_incomplete": 0,
+        "timeout_hit": false,
+        "resources": {
+          "n_samples": 83,
+          "duration_sec": 93.03,
+          "proc_cpu_avg": 566.42,
+          "proc_cpu_peak": 623.1,
+          "sys_cpu_avg": 98.5,
+          "sys_cpu_peak": 100.0,
+          "proc_mem_avg_mb": 512.39,
+          "proc_mem_peak_mb": 524.11,
+          "proc_mem_start_mb": 442.64,
+          "proc_mem_end_mb": 496.2,
+          "proc_mem_growth_mb": 53.56
+        }
+      },
+      "500": {
+        "pool_workers": 64,
+        "wall_sec": 185.74,
+        "throughput_req_per_sec": 2.69,
+        "latency_ms": {
+          "min": 14435.395,
+          "max": 26219.134,
+          "mean": 23217.896,
+          "p50": 23902.499,
+          "p90": 24976.331,
+          "p95": 25299.033,
+          "p99": 25700.058,
+          "n": 500
+        },
+        "errors": 0,
+        "timed_out_or_incomplete": 0,
+        "timeout_hit": false,
+        "resources": {
+          "n_samples": 177,
+          "duration_sec": 185.47,
+          "proc_cpu_avg": 572.9,
+          "proc_cpu_peak": 639.3,
+          "sys_cpu_avg": 99.43,
+          "sys_cpu_peak": 100.0,
+          "proc_mem_avg_mb": 562.07,
+          "proc_mem_peak_mb": 578.48,
+          "proc_mem_start_mb": 497.71,
+          "proc_mem_end_mb": 533.14,
+          "proc_mem_growth_mb": 35.43
+        }
+      },
+      "1000": {
+        "pool_workers": 64,
+        "wall_sec": 421.53,
+        "throughput_req_per_sec": 2.37,
+        "latency_ms": {
+          "min": 10030.439,
+          "max": 39646.034,
+          "mean": 26626.362,
+          "p50": 23934.026,
+          "p90": 36956.238,
+          "p95": 37429.071,
+          "p99": 38385.373,
+          "n": 1000
+        },
+        "errors": 0,
+        "timed_out_or_incomplete": 0,
+        "timeout_hit": false,
+        "resources": {
+          "n_samples": 425,
+          "duration_sec": 420.43,
+          "proc_cpu_avg": 570.74,
+          "proc_cpu_peak": 666.9,
+          "sys_cpu_avg": 99.76,
+          "sys_cpu_peak": 100.0,
+          "proc_mem_avg_mb": 576.5,
+          "proc_mem_peak_mb": 596.57,
+          "proc_mem_start_mb": 502.55,
+          "proc_mem_end_mb": 595.04,
+          "proc_mem_growth_mb": 92.48
+        }
+      }
+    }
+  },
+  "http_sanity": {
+    "name": "concurrency_http_sanity (live production instance, port 8000, within rate budget)",
+    "by_level": {
+      "1": {
+        "wall_sec": 0.3,
+        "throughput_req_per_sec": 3.37,
+        "latency_ms": {
+          "min": 296.298,
+          "max": 296.298,
+          "mean": 296.298,
+          "p50": 296.298,
+          "p90": 296.298,
+          "p95": 296.298,
+          "p99": 296.298,
+          "n": 1
+        },
+        "status_counts": {
+          "200": 1
+        }
+      },
+      "5": {
+        "wall_sec": 1.48,
+        "throughput_req_per_sec": 3.39,
+        "latency_ms": {
+          "min": 295.925,
+          "max": 1473.863,
+          "mean": 1237.819,
+          "p50": 1473.076,
+          "p90": 1473.796,
+          "p95": 1473.83,
+          "p99": 1473.857,
+          "n": 5
+        },
+        "status_counts": {
+          "200": 5
+        }
+      },
+      "10": {
+        "wall_sec": 2.99,
+        "throughput_req_per_sec": 3.34,
+        "latency_ms": {
+          "min": 1495.55,
+          "max": 2987.422,
+          "mean": 2456.879,
+          "p50": 2691.939,
+          "p90": 2987.392,
+          "p95": 2987.407,
+          "p99": 2987.419,
+          "n": 10
+        },
+        "status_counts": {
+          "200": 10
+        }
+      }
+    }
+  }
+}

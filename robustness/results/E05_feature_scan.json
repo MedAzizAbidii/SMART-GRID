@@ -1,0 +1,432 @@
+{
+  "id": "E05_feature_scan",
+  "group": "feature_corruption",
+  "clean_f1": 0.33070866141732286,
+  "ranking": [
+    {
+      "feature": "type_industriel",
+      "f1": 0.0363,
+      "auc": 0.7184
+    },
+    {
+      "feature": "type_residentiel",
+      "f1": 0.0363,
+      "auc": 0.6633
+    },
+    {
+      "feature": "consommation_kw_rolling_mean_3",
+      "f1": 0.0364,
+      "auc": 0.6524
+    },
+    {
+      "feature": "courant_a_rolling_mean_6",
+      "f1": 0.0364,
+      "auc": 0.655
+    },
+    {
+      "feature": "zone_Zone A",
+      "f1": 0.0364,
+      "auc": 0.582
+    },
+    {
+      "feature": "zone_Zone B",
+      "f1": 0.0364,
+      "auc": 0.658
+    },
+    {
+      "feature": "zone_Zone C",
+      "f1": 0.0364,
+      "auc": 0.7487
+    },
+    {
+      "feature": "zone_Zone D",
+      "f1": 0.0364,
+      "auc": 0.5509
+    },
+    {
+      "feature": "consommation_kw",
+      "f1": 0.0365,
+      "auc": 0.6628
+    },
+    {
+      "feature": "tension_v",
+      "f1": 0.0365,
+      "auc": 0.8165
+    },
+    {
+      "feature": "courant_a",
+      "f1": 0.0365,
+      "auc": 0.6683
+    },
+    {
+      "feature": "consommation_kw_rolling_mean_6",
+      "f1": 0.0365,
+      "auc": 0.6596
+    },
+    {
+      "feature": "courant_a_rolling_mean_3",
+      "f1": 0.0365,
+      "auc": 0.6627
+    },
+    {
+      "feature": "voltage_nominal_ratio",
+      "f1": 0.0365,
+      "auc": 0.8142
+    },
+    {
+      "feature": "type_commercial",
+      "f1": 0.0365,
+      "auc": 0.615
+    },
+    {
+      "feature": "current_voltage_ratio",
+      "f1": 0.0366,
+      "auc": 0.6744
+    },
+    {
+      "feature": "meter_vs_zone_consumption",
+      "f1": 0.0366,
+      "auc": 0.7143
+    },
+    {
+      "feature": "meter_id_SM_0005",
+      "f1": 0.0367,
+      "auc": 0.7484
+    },
+    {
+      "feature": "meter_id_SM_0011",
+      "f1": 0.0367,
+      "auc": 0.7505
+    },
+    {
+      "feature": "meter_id_SM_0012",
+      "f1": 0.0367,
+      "auc": 0.7559
+    },
+    {
+      "feature": "meter_id_SM_0021",
+      "f1": 0.0367,
+      "auc": 0.7437
+    },
+    {
+      "feature": "meter_id_SM_0028",
+      "f1": 0.0367,
+      "auc": 0.7519
+    },
+    {
+      "feature": "meter_id_SM_0038",
+      "f1": 0.0367,
+      "auc": 0.765
+    },
+    {
+      "feature": "is_weekend",
+      "f1": 0.0368,
+      "auc": 0.766
+    },
+    {
+      "feature": "meter_id_SM_0001",
+      "f1": 0.0368,
+      "auc": 0.7547
+    },
+    {
+      "feature": "meter_id_SM_0002",
+      "f1": 0.0368,
+      "auc": 0.7563
+    },
+    {
+      "feature": "meter_id_SM_0003",
+      "f1": 0.0368,
+      "auc": 0.7522
+    },
+    {
+      "feature": "meter_id_SM_0004",
+      "f1": 0.0368,
+      "auc": 0.7456
+    },
+    {
+      "feature": "meter_id_SM_0006",
+      "f1": 0.0368,
+      "auc": 0.7622
+    },
+    {
+      "feature": "meter_id_SM_0007",
+      "f1": 0.0368,
+      "auc": 0.7543
+    },
+    {
+      "feature": "meter_id_SM_0008",
+      "f1": 0.0368,
+      "auc": 0.7465
+    },
+    {
+      "feature": "meter_id_SM_0009",
+      "f1": 0.0368,
+      "auc": 0.7461
+    },
+    {
+      "feature": "meter_id_SM_0010",
+      "f1": 0.0368,
+      "auc": 0.7655
+    },
+    {
+      "feature": "meter_id_SM_0013",
+      "f1": 0.0368,
+      "auc": 0.751
+    },
+    {
+      "feature": "meter_id_SM_0014",
+      "f1": 0.0368,
+      "auc": 0.7512
+    },
+    {
+      "feature": "meter_id_SM_0015",
+      "f1": 0.0368,
+      "auc": 0.9088
+    },
+    {
+      "feature": "meter_id_SM_0016",
+      "f1": 0.0368,
+      "auc": 0.7589
+    },
+    {
+      "feature": "meter_id_SM_0017",
+      "f1": 0.0368,
+      "auc": 0.7525
+    },
+    {
+      "feature": "meter_id_SM_0018",
+      "f1": 0.0368,
+      "auc": 0.7515
+    },
+    {
+      "feature": "meter_id_SM_0019",
+      "f1": 0.0368,
+      "auc": 0.7411
+    },
+    {
+      "feature": "meter_id_SM_0020",
+      "f1": 0.0368,
+      "auc": 0.7559
+    },
+    {
+      "feature": "meter_id_SM_0022",
+      "f1": 0.0368,
+      "auc": 0.7722
+    },
+    {
+      "feature": "meter_id_SM_0023",
+      "f1": 0.0368,
+      "auc": 0.7418
+    },
+    {
+      "feature": "meter_id_SM_0024",
+      "f1": 0.0368,
+      "auc": 0.7504
+    },
+    {
+      "feature": "meter_id_SM_0025",
+      "f1": 0.0368,
+      "auc": 0.7934
+    },
+    {
+      "feature": "meter_id_SM_0026",
+      "f1": 0.0368,
+      "auc": 0.7703
+    },
+    {
+      "feature": "meter_id_SM_0027",
+      "f1": 0.0368,
+      "auc": 0.7539
+    },
+    {
+      "feature": "meter_id_SM_0029",
+      "f1": 0.0368,
+      "auc": 0.7544
+    },
+    {
+      "feature": "meter_id_SM_0030",
+      "f1": 0.0368,
+      "auc": 0.7502
+    },
+    {
+      "feature": "meter_id_SM_0031",
+      "f1": 0.0368,
+      "auc": 0.7551
+    },
+    {
+      "feature": "meter_id_SM_0032",
+      "f1": 0.0368,
+      "auc": 0.754
+    },
+    {
+      "feature": "meter_id_SM_0033",
+      "f1": 0.0368,
+      "auc": 0.7512
+    },
+    {
+      "feature": "meter_id_SM_0034",
+      "f1": 0.0368,
+      "auc": 0.7443
+    },
+    {
+      "feature": "meter_id_SM_0035",
+      "f1": 0.0368,
+      "auc": 0.7546
+    },
+    {
+      "feature": "meter_id_SM_0036",
+      "f1": 0.0368,
+      "auc": 0.7506
+    },
+    {
+      "feature": "meter_id_SM_0037",
+      "f1": 0.0368,
+      "auc": 0.7489
+    },
+    {
+      "feature": "meter_id_SM_0039",
+      "f1": 0.0368,
+      "auc": 0.7528
+    },
+    {
+      "feature": "meter_id_SM_0040",
+      "f1": 0.0368,
+      "auc": 0.7544
+    },
+    {
+      "feature": "meter_id_SM_0041",
+      "f1": 0.0368,
+      "auc": 0.7517
+    },
+    {
+      "feature": "meter_id_SM_0042",
+      "f1": 0.0368,
+      "auc": 0.7485
+    },
+    {
+      "feature": "meter_id_SM_0043",
+      "f1": 0.0368,
+      "auc": 0.7455
+    },
+    {
+      "feature": "meter_id_SM_0044",
+      "f1": 0.0368,
+      "auc": 0.7515
+    },
+    {
+      "feature": "meter_id_SM_0045",
+      "f1": 0.0368,
+      "auc": 0.7514
+    },
+    {
+      "feature": "meter_id_SM_0046",
+      "f1": 0.0368,
+      "auc": 0.7506
+    },
+    {
+      "feature": "meter_id_SM_0047",
+      "f1": 0.0368,
+      "auc": 0.7505
+    },
+    {
+      "feature": "meter_id_SM_0048",
+      "f1": 0.0368,
+      "auc": 0.7506
+    },
+    {
+      "feature": "meter_id_SM_0049",
+      "f1": 0.0368,
+      "auc": 0.7568
+    },
+    {
+      "feature": "meter_id_SM_0050",
+      "f1": 0.0368,
+      "auc": 0.7555
+    },
+    {
+      "feature": "consommation_kw_rolling_std_6",
+      "f1": 0.0378,
+      "auc": 0.8077
+    },
+    {
+      "feature": "courant_a_rolling_std_6",
+      "f1": 0.0379,
+      "auc": 0.8224
+    },
+    {
+      "feature": "consommation_kw_rolling_std_3",
+      "f1": 0.0385,
+      "auc": 0.8416
+    },
+    {
+      "feature": "courant_a_rolling_std_3",
+      "f1": 0.0388,
+      "auc": 0.8437
+    },
+    {
+      "feature": "courant_a_diff",
+      "f1": 0.0389,
+      "auc": 0.7925
+    },
+    {
+      "feature": "consommation_kw_diff",
+      "f1": 0.0395,
+      "auc": 0.7977
+    },
+    {
+      "feature": "power_factor",
+      "f1": 0.045,
+      "auc": 0.643
+    },
+    {
+      "feature": "voltage_deviation_230",
+      "f1": 0.047,
+      "auc": 0.7797
+    },
+    {
+      "feature": "hour_cos",
+      "f1": 0.0536,
+      "auc": 0.891
+    },
+    {
+      "feature": "hour_sin",
+      "f1": 0.0541,
+      "auc": 0.9226
+    },
+    {
+      "feature": "zone_consumption_mean",
+      "f1": 0.068,
+      "auc": 0.9077
+    },
+    {
+      "feature": "tension_v_diff",
+      "f1": 0.1399,
+      "auc": 0.899
+    },
+    {
+      "feature": "tension_v_rolling_mean_3",
+      "f1": 0.3224,
+      "auc": 0.9507
+    },
+    {
+      "feature": "tension_v_rolling_std_6",
+      "f1": 0.3301,
+      "auc": 0.9597
+    },
+    {
+      "feature": "tension_v_rolling_std_3",
+      "f1": 0.3484,
+      "auc": 0.9554
+    },
+    {
+      "feature": "tension_v_rolling_mean_6",
+      "f1": 0.3497,
+      "auc": 0.9572
+    },
+    {
+      "feature": "frequency_hz",
+      "f1": 0.3588,
+      "auc": 0.9501
+    }
+  ]
+}

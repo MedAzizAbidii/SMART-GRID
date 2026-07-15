@@ -1,0 +1,43 @@
+digraph AIPipeline {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Pipeline IA complet — de la donnée brute à l'explication";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  RAW [label="Données brutes\n(CSV compteurs)", fillcolor="#cde2fb"];
+  SPLIT [label="Split temporel par compteur\n(train / val / test)\nprepare_split_sequences()", fillcolor="#b7d3f6"];
+  SCALER [label="StandardScaler\najusté sur TRAIN uniquement", fillcolor="#9ec5f4"];
+  WINDOW [label="Fenêtrage glissant\n(seq_len=8, jamais à cheval\nsur une frontière split/compteur)", fillcolor="#6da7ec"];
+
+  subgraph cluster_model {
+    label="Transformer Autoencoder"; style="rounded"; color="#2a78d6"; fontsize=12;
+    ENC [label="Encodeur\n(3 couches, 4 têtes\nd'attention, dim=128)", fillcolor="#3987e5", fontcolor=white];
+    LATENT [label="Espace latent", fillcolor="#256abf", fontcolor=white];
+    DEC [label="Décodeur", fillcolor="#3987e5", fontcolor=white];
+  }
+
+  RECON [label="Erreur de reconstruction\n(MSE)", fillcolor="#1c5cab", fontcolor=white];
+  ENSEMBLE [label="EnsembleDetector\n(v2 rappel + v3 précision)", fillcolor="#4a3aa7", fontcolor=white];
+
+  subgraph cluster_xai {
+    label="Couche XAI"; style="rounded"; color="#8b5cf6"; fontsize=12;
+    ATTN [label="AttentionExplainer\n(WHERE — quel pas de temps)", fillcolor="#9085e9"];
+    IG [label="Integrated Gradients\n(WHY — quelle feature,\ntemps réel, 20 pas)", fillcolor="#9085e9"];
+    SHAPX [label="SHAPExplainer\n(KernelSHAP/DeepSHAP,\nanalyse hors-ligne)", fillcolor="#9085e9"];
+    FUSION [label="ExplanationFusion\n(WHERE + WHY combinés)", fillcolor="#6a4fd6", fontcolor=white];
+  }
+
+  CALIB [label="Calibration Platt\n(score brut → probabilité,\nECE=0.024)", fillcolor="#eda100"];
+  OUTPUT [label="Résultat final\n(is_anomaly, score, confiance,\ntype d'attaque, top_features,\ncritical_timestep)", fillcolor="#1baf7a", fontcolor=white];
+
+  RAW -> SPLIT -> SCALER -> WINDOW -> ENC -> LATENT -> DEC -> RECON -> ENSEMBLE;
+  ENC -> ATTN;
+  RECON -> IG;
+  RECON -> SHAPX [style=dashed, label="analyse\nhors-ligne"];
+  ATTN -> FUSION; IG -> FUSION; SHAPX -> FUSION [style=dashed];
+  ENSEMBLE -> CALIB -> OUTPUT;
+  FUSION -> OUTPUT;
+}

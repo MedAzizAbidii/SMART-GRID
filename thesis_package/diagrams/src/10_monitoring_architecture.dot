@@ -1,0 +1,39 @@
+digraph MonitoringArchitecture {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Architecture de monitoring et logging (production/monitoring/, logging/)";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  REQ [label="Chaque requête", fillcolor="#cde2fb"];
+  RID [label="request_id\n(contextvar, un par requête)", fillcolor="#b7d3f6"];
+
+  subgraph cluster_logs {
+    label="5 flux de logs JSON rotatifs (10MB × 5 sauvegardes)"; style="rounded"; color="#eda100"; fontsize=12;
+    APPLOG [label="app.log\n(cycle de vie)", fillcolor="#f4cf7a"];
+    PREDLOG [label="predictions.log\n(chaque lecture évaluée)", fillcolor="#f4cf7a"];
+    ATTACKLOG [label="attacks.log\n(anomalies confirmées)", fillcolor="#f4cf7a"];
+    CHAINLOG [label="blockchain.log\n(opérations du registre)", fillcolor="#f4cf7a"];
+    SYSLOG [label="system.log\n(erreurs, exceptions)", fillcolor="#f4cf7a"];
+  }
+
+  subgraph cluster_health {
+    label="Endpoints de santé"; style="rounded"; color="#1baf7a"; fontsize=12;
+    H1 [label="/health\n(liveness, léger)", fillcolor="#c6ecdc"];
+    H2 [label="/health/ready\n(readiness : modèle +\nblockchain chargés)", fillcolor="#c6ecdc"];
+    H3 [label="/health/detailed\n(ressources CPU/RAM,\nlatence modèle, validité chaîne)\n⚠ appel bloquant ~100ms mesuré", fillcolor="#fab219"];
+    H4 [label="/metrics\n(Prometheus)", fillcolor="#c6ecdc"];
+  }
+
+  WIDGET [label="Widget santé tableau de bord\n(sonde /health/detailed\ntoutes les 5s)", fillcolor="#4a3aa7", fontcolor=white];
+  PERF [label="Suite de profilage (Phase 7)\nperf/ — latence, débit,\nconcurrence, endurance", fillcolor="#e34948", fontcolor=white];
+
+  REQ -> RID;
+  RID -> APPLOG; RID -> PREDLOG; RID -> ATTACKLOG; RID -> CHAINLOG; RID -> SYSLOG;
+  RID -> H1; RID -> H2; RID -> H3; RID -> H4;
+  H3 -> WIDGET [label="pollé\ntoutes les 5s"];
+  H1 -> PERF [style=dashed, color="#898781"];
+  H3 -> PERF [style=dashed, color="#898781", label="mesuré :\n~108,6 ms"];
+}

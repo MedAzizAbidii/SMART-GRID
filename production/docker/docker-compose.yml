@@ -1,0 +1,90 @@
+# docker-compose.yml — one-command deployment of the 3-service topology:
+#   inference  — AI model, its own container, own resource limits
+#   backend    — FastAPI API, proxies /api/detect to inference
+#   dashboard  — nginx, serves static UI + reverse-proxies API/WS to backend
+#
+# Run (from smartgrid_simulation/production/docker/):
+#   docker compose up --build
+# Then: http://localhost:8080  (dashboard, proxying to backend+inference)
+#       http://localhost:8000/docs  (backend OpenAPI docs, direct)
+#       http://localhost:8100/health (inference health, direct)
+#
+# Data (blockchain ledger, meter readings) persists on the HOST at ../../../data
+# (the project-root data/ dir used by every prior phase) via a bind mount —
+# never baked into an image.
+
+services:
+  inference:
+    build:
+      context: ../..
+      dockerfile: production/docker/Dockerfile.inference
+    image: smartgrid-inference:1.0.0
+    ports:
+      - "8100:8100"
+    environment:
+      SGRID_ENVIRONMENT: production
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks: [smartgrid]
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: production/docker/Dockerfile.backend
+    image: smartgrid-backend:1.0.0
+    ports:
+      - "8000:8000"
+    environment:
+      SGRID_ENVIRONMENT: production
+      SGRID_INFERENCE_SERVICE_URL: "http://inference:8100"
+      # SGRID_JWT_SECRET_KEY: set via a real secret in production (see
+      # deployment_guide.md) — .env.production is git-ignored, not baked in.
+      SGRID_CORS_ALLOWED_ORIGINS: '["http://localhost:8080"]'
+    volumes:
+      - ../../../data:/data
+      - backend_logs:/app/logs
+      # Phase 8.5: persist PoA authority signing keys across container
+      # recreation. Without this, a fresh container would auto-generate
+      # NEW Ed25519 keys on every restart, silently invalidating
+      # verification of any previously-notarized blocks. Prefer the
+      # SGRID_AUTHORITY_KEY_* env vars (see authority_keys.py) injected via
+      # your orchestrator's secret manager for a real deployment instead of
+      # this file-backed volume, which is the local-dev-equivalent default.
+      - authority_keys:/app/production/security
+    depends_on:
+      inference:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks: [smartgrid]
+
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: production/docker/Dockerfile.dashboard
+    image: smartgrid-dashboard:1.0.0
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [smartgrid]
+
+networks:
+  smartgrid:
+    driver: bridge
+
+volumes:
+  backend_logs:
+  authority_keys:

@@ -1,0 +1,36 @@
+# Keep Docker build contexts small and never leak secrets/venvs into images.
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.gitignore
+
+# Research/training artifacts — not needed at inference/API runtime
+ablation/
+benchmark/
+calibration/
+robustness/
+investigation/
+realdata/
+outputs/attack_test_SM0042/
+outputs/comparison_*/
+outputs/enhanced_*/
+outputs/final_*/
+outputs/improved_model/
+outputs/model_improvement_analysis/
+outputs/overfitting_analysis/
+outputs/transformer_autoencoder*/
+outputs/*_old9col_backup/
+outputs/logs/
+
+# Large local data — mounted as a volume instead, never baked into the image
+data/
+../data/
+
+# Editor/OS noise
+.vscode/
+*.log
+logs/
+.DS_Store

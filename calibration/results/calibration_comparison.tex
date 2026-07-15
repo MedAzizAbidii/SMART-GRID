@@ -1,0 +1,15 @@
+\begin{table}
+\caption{Calibration method comparison (held-out test).}
+\label{tab:calibration}
+\begin{tabular}{llrrrr}
+\toprule
+method & key & ece & mce & mce_robust_min10 & brier \\
+\midrule
+Uncalibrated (percentile) & uncalibrated & 0.481600 & 0.827800 & 0.827800 & 0.317000 \\
+Platt (raw score) & platt_raw & 0.024000 & 0.212800 & 0.212800 & 0.018400 \\
+Platt (log(score+eps)) & platt_log & 0.023700 & 0.737000 & 0.737000 & 0.021800 \\
+Isotonic regression & isotonic & 0.029200 & 0.596400 & 0.533200 & 0.028000 \\
+Temperature scaling & temperature & 0.229800 & 0.788200 & 0.788200 & 0.113900 \\
+\bottomrule
+\end{tabular}
+\end{table}

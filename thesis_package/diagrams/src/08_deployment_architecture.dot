@@ -1,0 +1,39 @@
+digraph DeploymentArchitecture {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Architecture de déploiement — topologie Docker à 3 services (production/docker/)";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  OP [label="Opérateur\n(navigateur)", fillcolor="#cde2fb"];
+
+  subgraph cluster_dashboard_c {
+    label="Conteneur dashboard (nginx) :8080"; style="rounded"; color="#4a3aa7"; fontsize=12;
+    NGINX [label="nginx\nUI statique + proxy inverse", fillcolor="#9085e9"];
+  }
+  subgraph cluster_backend_c {
+    label="Conteneur backend (FastAPI) :8000"; style="rounded"; color="#eda100"; fontsize=12;
+    BACKEND [label="api_server.py\nauth · RBAC · logs\nregistre blockchain", fillcolor="#f4cf7a"];
+  }
+  subgraph cluster_inference_c {
+    label="Conteneur inference (FastAPI) :8100"; style="rounded"; color="#2a78d6"; fontsize=12;
+    INFER [label="inference_service.py\nmodèle ml_pipeline\n(non modifié)", fillcolor="#9ec5f4"];
+  }
+
+  DATA_VOL [label="Volume monté : data/\n(registre blockchain,\nlectures compteurs)\nPERSISTANT hors image", fillcolor="#e1e0d9"];
+  LOG_VOL [label="Volume nommé : backend_logs\n(5 flux JSON)", fillcolor="#e1e0d9"];
+
+  NOTE [label="NON VÉRIFIÉ PAR UN BUILD RÉEL\n(pas de Docker sur la machine\nde développement) — validé\nuniquement par revue statique", fillcolor="#fab219", style="rounded,filled,dashed"];
+
+  OP -> NGINX [label="HTTPS"];
+  NGINX -> BACKEND [label="/api, /ws,\n/health, /metrics"];
+  BACKEND -> INFER [label="/predict\n(si SGRID_INFERENCE_\nSERVICE_URL défini)", style=dashed];
+  BACKEND -> DATA_VOL;
+  BACKEND -> LOG_VOL;
+  BACKEND -> NOTE [style=invis];
+
+  MONO [label="Mode mono-processus\n(défaut, sans Docker)\nbackend + inférence fusionnés,\ncomportement identique", fillcolor="#e1e0d9", style="rounded,filled,dashed"];
+  BACKEND -> MONO [style=dashed, color="#898781", label="alternative\npar défaut"];
+}

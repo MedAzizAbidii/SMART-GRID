@@ -1,0 +1,52 @@
+[
+  {
+    "id": "E1_full",
+    "label": "Full (Transformer+attention)",
+    "roc_auc": 0.6554060092587627,
+    "pr_auc": 0.20695034590724928,
+    "f1": 0.2538461538461539,
+    "mcc": 0.17286380122375025,
+    "delta_auc_vs_full": 0.0,
+    "delta_f1_vs_full": 0.0
+  },
+  {
+    "id": "E2_dense_encoder",
+    "label": "Dense encoder (no Transformer)",
+    "roc_auc": 0.6668543442901318,
+    "pr_auc": 0.21112817653948399,
+    "f1": 0.2627118644067797,
+    "mcc": 0.1859755020394725,
+    "delta_auc_vs_full": -0.011448335031369106,
+    "delta_f1_vs_full": -0.008865710560625795
+  },
+  {
+    "id": "E3_no_attention",
+    "label": "No attention (token-wise FFN)",
+    "roc_auc": 0.6668543442901318,
+    "pr_auc": 0.21112817653948399,
+    "f1": 0.2627118644067797,
+    "mcc": 0.1859755020394725,
+    "delta_auc_vs_full": -0.011448335031369106,
+    "delta_f1_vs_full": -0.008865710560625795
+  },
+  {
+    "id": "E4_no_positional",
+    "label": "No positional encoding",
+    "roc_auc": 0.7147657604518561,
+    "pr_auc": 0.21217245503945745,
+    "f1": 0.2481203007518797,
+    "mcc": 0.16572254186693802,
+    "delta_auc_vs_full": -0.059359751193093446,
+    "delta_f1_vs_full": 0.005725853094274175
+  },
+  {
+    "id": "E5_lstm_ae",
+    "label": "LSTM autoencoder",
+    "roc_auc": 0.6542978175773501,
+    "pr_auc": 0.21112442492772795,
+    "f1": 0.26008968609865474,
+    "mcc": 0.18565405768858267,
+    "delta_auc_vs_full": 0.0011081916814126291,
+    "delta_f1_vs_full": -0.00624353225250085
+  }
+]

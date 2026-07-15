@@ -15,8 +15,11 @@ class SmartGridDataPreprocessor:
     Handles data loading, cleaning, feature engineering, and sequence creation
     """
     
-    def __init__(self, sequence_length: int = 20):
+    def __init__(self, sequence_length: int = 20, label_strategy: str = "last"):
         self.sequence_length = sequence_length
+        if label_strategy not in {"last", "any", "majority"}:
+            raise ValueError("label_strategy must be one of: last, any, majority")
+        self.label_strategy = label_strategy
         self.scaler = StandardScaler()
         self.zone_encoder = LabelEncoder()
         self.type_encoder = LabelEncoder()
@@ -130,8 +133,12 @@ class SmartGridDataPreprocessor:
                 seq_features = window[feature_cols].values
                 sequences.append(seq_features)
                 
-                # Label: 1 if ANY timestep in sequence has anomaly
-                label = window['is_anomaly'].max()
+                if self.label_strategy == "any":
+                    label = window['is_anomaly'].max()
+                elif self.label_strategy == "majority":
+                    label = int(window['is_anomaly'].mean() >= 0.5)
+                else:
+                    label = int(window['is_anomaly'].iloc[-1])
                 labels.append(label)
                 
                 # Store metadata for later analysis

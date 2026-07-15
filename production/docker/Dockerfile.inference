@@ -1,0 +1,41 @@
+# Dockerfile.inference — standalone AI detection microservice.
+#
+# Wraps the EXISTING, UNMODIFIED ml_pipeline/ + trained outputs/ behind
+# production/inference_service.py. No model weights or detection code are
+# changed by containerization; the model directories are copied in as-is.
+#
+# Build (from smartgrid_simulation/):
+#   docker build -f production/docker/Dockerfile.inference -t smartgrid-inference:1.0.0 .
+# Run standalone:
+#   docker run -p 8100:8100 smartgrid-inference:1.0.0
+
+FROM python:3.10-slim AS base
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY production/docker/requirements-inference.txt ./requirements-inference.txt
+RUN pip install --no-cache-dir -r requirements-inference.txt
+
+# Only what inference actually needs — not the research/phase folders
+# (benchmark/ablation/robustness/calibration/realdata/investigation), which
+# are training-time artifacts, not runtime dependencies.
+COPY ml_pipeline/ ./ml_pipeline/
+COPY outputs/early_stopping_final/ ./outputs/early_stopping_final/
+COPY outputs/test_run_now/ ./outputs/test_run_now/
+COPY production/config/ ./production/config/
+COPY production/inference_service.py ./production/inference_service.py
+COPY production/__init__.py ./production/__init__.py
+
+ENV PYTHONUNBUFFERED=1 \
+    SGRID_ENVIRONMENT=production
+
+EXPOSE 8100
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8100/health',timeout=3).status==200 else 1)"
+
+CMD ["python", "-m", "uvicorn", "production.inference_service:app", "--host", "0.0.0.0", "--port", "8100"]

@@ -1,0 +1,58 @@
+digraph SequenceDiagram {
+  fontname="Helvetica";
+  labelloc="t";
+  label="Diagramme de séquence — Détection d'une anomalie en temps réel (POST /api/detect)";
+  fontsize=18;
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=9, shape=plaintext];
+  edge [fontname="Helvetica", fontsize=8];
+
+  { rank=same; H_METER [label="Compteur", fontsize=12, fontcolor="#2a78d6"];
+              H_API [label="API FastAPI", fontsize=12, fontcolor="#eda100"];
+              H_DET [label="EnsembleDetector", fontsize=12, fontcolor="#1baf7a"];
+              H_XAI [label="XAI", fontsize=12, fontcolor="#4a3aa7"];
+              H_CHAIN [label="Registre PoA", fontsize=12, fontcolor="#008300"];
+              H_LOG [label="Logs", fontsize=12, fontcolor="#898781"];
+              H_METER -> H_API -> H_DET -> H_XAI -> H_CHAIN -> H_LOG [style=invis, weight=1000]; }
+
+  // invisible vertical lifelines
+  node [shape=point, width=0.01, label=""];
+  M0;M1;M2;M3;M4;M5;M6;
+  A0;A1;A2;A3;A4;A5;A6;A7;A8;
+  D0;D1;D2;D3;D4;
+  X0;X1;
+  C0;C1;
+  L0;L1;
+
+  H_METER -> M0 -> M1 -> M2 -> M3 -> M4 -> M5 -> M6 [style=invis];
+  H_API -> A0 -> A1 -> A2 -> A3 -> A4 -> A5 -> A6 -> A7 -> A8 [style=invis];
+  H_DET -> D0 -> D1 -> D2 -> D3 -> D4 [style=invis];
+  H_XAI -> X0 -> X1 [style=invis];
+  H_CHAIN -> C0 -> C1 [style=invis];
+  H_LOG -> L0 -> L1 [style=invis];
+
+  { rank=same; M0; A0; M0 -> A0 [style=invis, weight=100]; }
+  M0 -> A0 [label="1: POST /api/detect(reading)", constraint=false];
+
+  { rank=same; A2; D0; A2 -> D0 [style=invis, weight=100]; }
+  A2 -> D0 [label="2: ingest(raw)", constraint=false];
+
+  { rank=same; D1; X0; D1 -> X0 [style=invis, weight=100]; }
+  D1 -> X0 [label="3: attn, recon_error", constraint=false];
+  { rank=same; D2; X1; D2 -> X1 [style=invis, weight=100]; }
+  X1 -> D2 [label="4: top_features,\ncritical_timestep", constraint=false, style=dashed];
+
+  { rank=same; A3; D3; A3 -> D3 [style=invis, weight=100]; }
+  D3 -> A3 [label="5: résultat (score,\nis_anomaly, confiance)", constraint=false, style=dashed];
+
+  { rank=same; A4; C0; A4 -> C0 [style=invis, weight=100]; }
+  A4 -> C0 [label="6: [si anomalie confirmée]\ningest_records([record])", constraint=false];
+  { rank=same; A5; C1; A5 -> C1 [style=invis, weight=100]; }
+  C1 -> A5 [label="7: bloc ajouté", constraint=false, style=dashed];
+
+  { rank=same; A6; L0; A6 -> L0 [style=invis, weight=100]; }
+  A6 -> L0 [label="8: log(predictions,\nattacks si anomalie)", constraint=false];
+
+  { rank=same; M5; A7; M5 -> A7 [style=invis, weight=100]; }
+  A7 -> M5 [label="9: réponse JSON", constraint=false, style=dashed];
+}

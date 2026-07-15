@@ -1,0 +1,26 @@
+{
+  "drift_level_sigma": 0.5,
+  "method": "platt_raw",
+  "metrics": {
+    "clean": {
+      "ece": 0.023992018224515185,
+      "mce_robust": 0.21275368252815494,
+      "brier": 0.018410711402256346,
+      "fpr": 0.03585246324477689
+    },
+    "drift_stale_calibrator": {
+      "ece": 0.7699067138720086,
+      "mce_robust": 0.7837351342421552,
+      "brier": 0.6087720343648618,
+      "fpr": 1.0
+    },
+    "drift_recalibrated": {
+      "ece": 0.04062774498585413,
+      "mce_robust": 0.42453726870268893,
+      "brier": 0.016509140104826618,
+      "fpr": 0.05236007222078927
+    }
+  },
+  "fpr_recovered_pct": 98.28785446762974,
+  "new_threshold_after_recalibration": 0.1842259019613266
+}

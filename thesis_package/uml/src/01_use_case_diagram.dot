@@ -1,0 +1,50 @@
+digraph UseCaseDiagram {
+  rankdir=LR;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Diagramme de cas d'utilisation";
+  fontsize=18;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  node [shape=box, style="rounded,filled", fillcolor="#cde2fb"];
+  VIEWER   [label="Opérateur\n(viewer)"];
+  ANALYST  [label="Analyste"];
+  GRIDOP   [label="Opérateur réseau\n(grid_operator)"];
+  ADMIN    [label="Administrateur"];
+  AUDITOR  [label="Auditeur de sécurité"];
+  METER    [label="Compteur intelligent\n(acteur système)"];
+
+  subgraph cluster_system {
+    label="Plateforme de détection d'anomalies Smart Grid";
+    style="rounded"; color="#2a78d6"; fontsize=13; labeljust="c";
+    node [shape=ellipse, style="filled", fillcolor="#9ec5f4", margin="0.15,0.08"];
+
+    UC_LOGIN   [label="S'authentifier\n(JWT)"];
+    UC_DASH    [label="Consulter le\ntableau de bord"];
+    UC_ALERTS  [label="Visualiser les\nalertes en temps réel"];
+    UC_XAI     [label="Consulter les\nexplications XAI"];
+    UC_DEMO    [label="Lancer une\ndémonstration d'attaque"];
+    UC_REPORT  [label="Télécharger un\nrapport de performance"];
+    UC_SIM     [label="Simuler une attaque\n(API)"];
+    UC_RELOAD  [label="Recharger le modèle"];
+    UC_THRESH  [label="Consulter les seuils\nadaptatifs"];
+    UC_CHAIN   [label="Valider la chaîne\nblockchain"];
+    UC_USERS   [label="Gérer les comptes\nutilisateurs"];
+    UC_LOGS    [label="Consulter les\nlogs d'audit"];
+    UC_INGEST  [label="Envoyer une lecture\n(POST /api/detect)"];
+    UC_HEALTH  [label="Consulter l'état\nde santé du système"];
+  }
+
+  VIEWER -> UC_LOGIN; VIEWER -> UC_DASH; VIEWER -> UC_ALERTS; VIEWER -> UC_HEALTH;
+  ANALYST -> UC_XAI; ANALYST -> UC_REPORT; ANALYST -> UC_CHAIN;
+  ANALYST -> UC_LOGIN [style=invis];
+  GRIDOP -> UC_DEMO; GRIDOP -> UC_SIM; GRIDOP -> UC_THRESH;
+  ADMIN -> UC_RELOAD; ADMIN -> UC_USERS; ADMIN -> UC_LOGS;
+  AUDITOR -> UC_LOGS; AUDITOR -> UC_CHAIN;
+  METER -> UC_INGEST;
+
+  UC_DEMO -> UC_SIM [label="«include»", style=dashed, fontsize=8];
+  UC_ALERTS -> UC_XAI [label="«extend»", style=dashed, fontsize=8];
+  UC_INGEST -> UC_CHAIN [label="«extend»\n(si anomalie)", style=dashed, fontsize=8];
+}

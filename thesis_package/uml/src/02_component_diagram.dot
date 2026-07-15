@@ -1,0 +1,38 @@
+digraph ComponentDiagram {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Diagramme de composants";
+  fontsize=18;
+  node [fontname="Helvetica", fontsize=10, shape=component, style=filled];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e", arrowhead=vee];
+
+  DASH   [label="«component»\nDashboard\n(dashboard/index.html)", fillcolor="#9085e9"];
+  APISRV [label="«component»\napi_server\n(FastAPI)", fillcolor="#f4cf7a"];
+  AUTH   [label="«component»\nproduction.security\n(auth + RBAC)", fillcolor="#f6c6c5"];
+  MW     [label="«component»\nproduction.middleware\n(RateLimit, RequestId)", fillcolor="#f6c6c5"];
+  HEALTH [label="«component»\nproduction.monitoring\n(health/metrics)", fillcolor="#f6c6c5"];
+  LOGGER [label="«component»\nproduction.logging\n(5 flux JSON)", fillcolor="#f6c6c5"];
+  MLPIPE [label="«component»\nml_pipeline\n(RealtimeDetector /\nEnsembleDetector)", fillcolor="#9ec5f4"];
+  XAI    [label="«component»\nXAI\n(Attention, SHAP,\nIntegrated Gradients)", fillcolor="#9ec5f4"];
+  CHAIN  [label="«component»\nblockchain.poa_ledger\n(ProofOfAuthorityLedger)", fillcolor="#c6ecdc"];
+  DATAGEN[label="«component»\ndata_generation\n(RealisticDatasetGenerator)", fillcolor="#cde2fb"];
+  INFERSVC[label="«component»\nproduction.inference_service\n(microservice optionnel)", fillcolor="#9ec5f4", style="filled,dashed"];
+
+  IDET [shape=box, style="filled", fillcolor="#e1e0d9", label="interface\nIDetector.ingest()"];
+  ICHAIN [shape=box, style="filled", fillcolor="#e1e0d9", label="interface\nILedger.ingest_records()"];
+
+  DASH -> APISRV [label="REST + WebSocket"];
+  APISRV -> AUTH [label="require_role()"];
+  APISRV -> MW;
+  APISRV -> HEALTH;
+  APISRV -> LOGGER;
+  APISRV -> IDET;
+  IDET -> MLPIPE [style=dashed, arrowhead=empty, label="réalise"];
+  MLPIPE -> XAI;
+  APISRV -> ICHAIN;
+  ICHAIN -> CHAIN [style=dashed, arrowhead=empty, label="réalise"];
+  APISRV -> INFERSVC [label="HTTP\n(si configuré)", style=dashed];
+  INFERSVC -> MLPIPE [label="réutilise\n(non modifié)"];
+  DATAGEN -> MLPIPE [label="jeux de données\nd'entraînement"];
+}

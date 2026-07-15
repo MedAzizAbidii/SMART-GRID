@@ -1,0 +1,179 @@
+{
+  "autocorrelation": {
+    "consommation_kw": [
+      1.0,
+      0.9335,
+      0.9116,
+      0.8911,
+      0.871,
+      0.8505,
+      0.8281,
+      0.8057,
+      0.7824,
+      0.7602,
+      0.738
+    ],
+    "tension_v": [
+      1.0,
+      0.0136,
+      0.0105,
+      0.0161,
+      0.0166,
+      0.0201,
+      0.0043,
+      0.0071,
+      0.0013,
+      0.0004,
+      0.0209
+    ],
+    "courant_a": [
+      1.0,
+      0.9282,
+      0.9059,
+      0.8858,
+      0.866,
+      0.8454,
+      0.823,
+      0.801,
+      0.7779,
+      0.7562,
+      0.7345
+    ]
+  },
+  "lag1_autocorr": {
+    "consommation_kw": 0.9335,
+    "tension_v": 0.0136,
+    "courant_a": 0.9282
+  },
+  "shuffle_test": {
+    "auc_ordered": 0.9538,
+    "auc_timeshuffled": 0.9542,
+    "delta": -0.0004
+  },
+  "attention": {
+    "avg_entropy_norm": 0.9611,
+    "sparsity": 0.0731,
+    "dominant_positions": [
+      0.1343,
+      0.1283,
+      0.1231,
+      0.1209,
+      0.12,
+      0.1205,
+      0.124,
+      0.129
+    ],
+    "uniform_baseline_entropy": 1.0
+  },
+  "latent_separation": {
+    "pca_ratio": 0.811,
+    "tsne_ratio": 0.564,
+    "pca_var_explained": [
+      0.075,
+      0.04
+    ]
+  },
+  "top_single_feature_auc": [
+    [
+      "meter_id_SM_0015",
+      0.748
+    ],
+    [
+      "consommation_kw_rolling_mean_6",
+      0.7359
+    ],
+    [
+      "courant_a_rolling_mean_6",
+      0.7348
+    ],
+    [
+      "consommation_kw",
+      0.7336
+    ],
+    [
+      "consommation_kw_rolling_mean_3",
+      0.7333
+    ],
+    [
+      "courant_a",
+      0.7331
+    ],
+    [
+      "courant_a_rolling_mean_3",
+      0.7328
+    ],
+    [
+      "voltage_deviation_230",
+      0.7301
+    ]
+  ],
+  "max_single_feature_auc": 0.748,
+  "permutation_top": [
+    [
+      "power_factor",
+      0.0191
+    ],
+    [
+      "voltage_deviation_230",
+      0.0144
+    ],
+    [
+      "consommation_kw",
+      0.0001
+    ],
+    [
+      "consommation_kw_rolling_std_6",
+      0.0001
+    ],
+    [
+      "current_voltage_ratio",
+      0.0001
+    ],
+    [
+      "tension_v_rolling_std_6",
+      0.0
+    ],
+    [
+      "tension_v",
+      0.0
+    ],
+    [
+      "type_residentiel",
+      0.0
+    ]
+  ],
+  "importance_top3_share": 0.993,
+  "intrinsic_dim_95": 56,
+  "n_features": 85,
+  "error_analysis": {
+    "false_negatives": 7,
+    "false_positives": 156,
+    "fn_by_attack_type": {
+      "Tension hors norme": 3,
+      "Consommation nulle suspecte": 2,
+      "Surcharge": 2
+    }
+  },
+  "tree_temporal": {
+    "last_timestep": {
+      "auc": 1.0,
+      "f1": 0.9733
+    },
+    "full_sequence": {
+      "auc": 0.9999,
+      "f1": 0.9722
+    },
+    "time_shuffled": {
+      "auc": 0.9774,
+      "f1": 0.6923
+    }
+  },
+  "recommendation": {
+    "verdict": "Make Transformer optional",
+    "reasons": [
+      "Time-shuffling the input barely changes AUC (\u0394=-0.000), so the model is **not using temporal order** \u2014 attention and positional encoding have nothing to exploit.",
+      "A tree on a **single timestep** matches a tree on the full sequence (F1 0.973 vs 0.972), confirming temporal context adds almost no information on this data.",
+      "Learned attention is near-uniform (normalised entropy 0.961/1.0), i.e. it does not concentrate on specific timesteps."
+    ]
+  }
+}

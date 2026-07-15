@@ -1,0 +1,60 @@
+\begin{table}
+\caption{Robustness degradation summary (held-out test).}
+\label{tab:robustness}
+\begin{tabular}{llrrr}
+\toprule
+experiment & label & f1 & roc_auc & pct_drop \\
+\midrule
+gaussian_noise & Gaussian sigma=0.01 & 0.324500 & 0.954000 & 1.870000 \\
+gaussian_noise & Gaussian sigma=0.02 & 0.306200 & 0.954200 & 7.410000 \\
+gaussian_noise & Gaussian sigma=0.05 & 0.127900 & 0.953600 & 61.320000 \\
+gaussian_noise & Gaussian sigma=0.1 & 0.036300 & 0.943500 & 89.030000 \\
+gaussian_noise & Gaussian sigma=0.2 & 0.036300 & 0.848300 & 89.030000 \\
+sensor_noise & Sensor noise: drift & 0.290300 & 0.957300 & 12.210000 \\
+sensor_noise & Sensor noise: offset & 0.063100 & 0.832800 & 80.910000 \\
+sensor_noise & Sensor noise: quantization & 0.309800 & 0.953800 & 6.330000 \\
+sensor_noise & Sensor noise: spike & 0.145500 & 0.886500 & 56.000000 \\
+missing_values & Missing 1% (ffill) & 0.197800 & 0.923300 & 40.170000 \\
+missing_values & Missing 1% (interpolate) & 0.236200 & 0.931000 & 28.570000 \\
+missing_values & Missing 1% (mean) & 0.087700 & 0.789800 & 73.490000 \\
+missing_values & Missing 1% (zero) & 0.087000 & 0.784800 & 73.690000 \\
+missing_values & Missing 5% (ffill) & 0.093200 & 0.833900 & 71.830000 \\
+missing_values & Missing 5% (interpolate) & 0.119400 & 0.871400 & 63.900000 \\
+missing_values & Missing 5% (mean) & 0.037600 & 0.645100 & 88.620000 \\
+missing_values & Missing 5% (zero) & 0.037400 & 0.638800 & 88.690000 \\
+missing_values & Missing 10% (ffill) & 0.064400 & 0.785400 & 80.530000 \\
+missing_values & Missing 10% (interpolate) & 0.088300 & 0.827400 & 73.310000 \\
+missing_values & Missing 10% (mean) & 0.036300 & 0.621500 & 89.020000 \\
+missing_values & Missing 10% (zero) & 0.036300 & 0.615600 & 89.020000 \\
+missing_values & Missing 20% (ffill) & 0.049800 & 0.730000 & 84.930000 \\
+missing_values & Missing 20% (interpolate) & 0.063900 & 0.798300 & 80.670000 \\
+missing_values & Missing 20% (mean) & 0.036300 & 0.662700 & 89.030000 \\
+missing_values & Missing 20% (zero) & 0.036300 & 0.656000 & 89.030000 \\
+missing_values & Missing 40% (ffill) & 0.041100 & 0.718900 & 87.560000 \\
+missing_values & Missing 40% (interpolate) & 0.052800 & 0.775700 & 84.030000 \\
+missing_values & Missing 40% (mean) & 0.036300 & 0.803700 & 89.030000 \\
+missing_values & Missing 40% (zero) & 0.036300 & 0.794700 & 89.030000 \\
+sensor_failure & Sensor failure: critical & 0.049700 & 0.732200 & 84.970000 \\
+sensor_failure & Sensor failure: multiple & 0.036600 & 0.792600 & 88.920000 \\
+sensor_failure & Sensor failure: random_single & 0.135300 & 0.881900 & 59.090000 \\
+packet_loss & Packet loss 1% & 0.298900 & 0.946700 & 9.610000 \\
+packet_loss & Packet loss 5% & 0.195500 & 0.910900 & 40.900000 \\
+packet_loss & Packet loss 10% & 0.136600 & 0.862000 & 58.680000 \\
+packet_loss & Packet loss 20% & 0.099500 & 0.779900 & 69.910000 \\
+timestamp_jitter & Timestamp jitter p=0.05 & 0.330700 & 0.954100 & 0.000000 \\
+timestamp_jitter & Timestamp jitter p=0.15 & 0.329400 & 0.954200 & 0.390000 \\
+timestamp_jitter & Timestamp jitter p=0.3 & 0.330800 & 0.955000 & -0.020000 \\
+data_drift & Data drift level=0.0 & 0.309400 & 0.962100 & 6.440000 \\
+data_drift & Data drift level=0.25 & 0.036300 & 0.972500 & 89.030000 \\
+data_drift & Data drift level=0.5 & 0.036300 & 0.979600 & 89.030000 \\
+data_drift & Data drift level=1.0 & 0.036300 & 0.972400 & 89.030000 \\
+data_drift & Data drift level=2.0 & 0.036300 & 0.822100 & 89.030000 \\
+data_drift & Data drift level=4.0 & 0.036300 & 0.864600 & 89.030000 \\
+concept_drift & Concept drift level=0.0 & 0.330700 & 0.953800 & 0.000000 \\
+concept_drift & Concept drift level=0.25 & 0.512300 & 1.000000 & -54.900000 \\
+concept_drift & Concept drift level=0.5 & 0.512300 & 1.000000 & -54.900000 \\
+concept_drift & Concept drift level=0.75 & 0.512300 & 1.000000 & -54.900000 \\
+concept_drift & Concept drift level=1.0 & 0.512300 & 1.000000 & -54.900000 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,33 @@
+digraph BlockchainArchitecture {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Architecture blockchain — Registre Proof-of-Authority (blockchain/poa_ledger.py)";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  ANOM [label="Anomalie confirmée\n(détection IA)", fillcolor="#e34948", fontcolor=white];
+  RECORD [label="Enregistrement\n(meter_id, type d'attaque,\nscore, horodatage,\nrow_hash SHA-256)", fillcolor="#cde2fb"];
+
+  subgraph cluster_authorities {
+    label="4 autorités (rotation round-robin)"; style="rounded"; color="#1baf7a"; fontsize=12;
+    AUTH1 [label="Utility Operator", fillcolor="#c6ecdc"];
+    AUTH2 [label="Grid Supervisor", fillcolor="#c6ecdc"];
+    AUTH3 [label="Security Auditor", fillcolor="#c6ecdc"];
+    AUTH4 [label="Data Custodian", fillcolor="#c6ecdc"];
+  }
+
+  PROPOSE [label="Proposeur = autorités[index % 4]", fillcolor="#1baf7a", fontcolor=white];
+  ROOT [label="Racine de transactions\n(SHA-256 des row_hash)", fillcolor="#199e70", fontcolor=white];
+  SEAL [label="Signature\nsha256(secret + block_hash)", fillcolor="#199e70", fontcolor=white];
+  BLOCK [label="Bloc PoA\n{index, timestamp, previous_hash,\nproposer, signature, transaction_root,\ntransaction_count, transactions,\nblock_hash}", fillcolor="#008300", fontcolor=white];
+  CHAIN [label="Chaîne de blocs\n(chaînage par previous_hash,\ngenèse = ZERO_HASH)", fillcolor="#006600", fontcolor=white];
+  VALIDATE [label="validate()\nrevérifie : racine, signature,\nchaînage, comptages\n(coût O(total enregistrements))", fillcolor="#eda100"];
+  STATUS [label="/api/blockchain/status\n{valid, blocks, authorities}", fillcolor="#f4cf7a"];
+
+  ANOM -> RECORD -> PROPOSE;
+  AUTH1 -> PROPOSE; AUTH2 -> PROPOSE; AUTH3 -> PROPOSE; AUTH4 -> PROPOSE;
+  PROPOSE -> ROOT -> SEAL -> BLOCK -> CHAIN;
+  CHAIN -> VALIDATE -> STATUS;
+}

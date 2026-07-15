@@ -12,3 +12,23 @@ requests>=2.31.0
 cryptography>=42.0.0
 torch>=2.2.0
 shap>=0.45.0
+
+# --- production hardening (Phase 6) ---
+pydantic-settings>=2.4.0
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
+prometheus-client>=0.20.0
+httpx>=0.27.0
+psutil>=5.9.0
+python-multipart>=0.0.9
+
+# --- security pins (pip-audit findings, Phase 6 security review) ---
+# starlette: form-parsing DoS (PYSEC-2026-249) + StaticFiles SSRF (PYSEC-2026-2281)
+starlette>=1.3.1
+# cryptography: bundled OpenSSL advisory (GHSA-537c-gmf6-5ccf)
+cryptography>=48.0.1
+# pillow: multiple decompression-bomb bypasses (PYSEC-2026-2253/2254/2255/2256/2257)
+pillow>=12.3.0
+# setuptools: path traversal / ReDoS (PYSEC-2025-49, PYSEC-2022-43012); pinned
+# below 82 because torch 2.12.x requires setuptools<82
+setuptools>=78.1.1,<82

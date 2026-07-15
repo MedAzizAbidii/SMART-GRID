@@ -1,0 +1,78 @@
+{
+  "id": "E09_featsel_20",
+  "group": "features",
+  "component": "Feature selection",
+  "label": "Top-20 features (variance)",
+  "changes": {
+    "feature_k": 20
+  },
+  "retrain": true,
+  "metrics": {
+    "accuracy": 0.9627848101265822,
+    "precision": 0.29891304347826086,
+    "recall": 0.7534246575342466,
+    "f1": 0.4280155642023346,
+    "roc_auc": 0.878800513036135,
+    "pr_auc": 0.41582518315671113,
+    "mcc": 0.4602397613008251,
+    "balanced_accuracy": 0.8600757540959858,
+    "specificity": 0.966726850657725,
+    "fpr": 0.03327314934227495,
+    "fnr": 0.2465753424657534,
+    "detection_rate": 0.7534246575342466,
+    "tn": 3748,
+    "fp": 129,
+    "fn": 18,
+    "tp": 55
+  },
+  "ci": {
+    "f1": [
+      0.4280155642023346,
+      0.34597631030450915,
+      0.5093951709299546
+    ],
+    "roc_auc": [
+      0.878800513036135,
+      0.8243000527955953,
+      0.9252583514334047
+    ],
+    "pr_auc": [
+      0.41582518315671113,
+      0.3234723917343431,
+      0.5493340347282404
+    ],
+    "mcc": [
+      0.4602397613008251,
+      0.3851058205952451,
+      0.535599808008
+    ]
+  },
+  "threshold": 0.039184338791850376,
+  "n_params": 104740,
+  "model_size_kb": 409.1,
+  "train_time_s": 37.8,
+  "infer_latency_ms": 0.0734,
+  "memory_mb": 15.7,
+  "selected_features": [
+    "consommation_kw",
+    "courant_a",
+    "power_factor",
+    "frequency_hz",
+    "consommation_kw_diff",
+    "consommation_kw_rolling_mean_3",
+    "consommation_kw_rolling_std_3",
+    "consommation_kw_rolling_mean_6",
+    "consommation_kw_rolling_std_6",
+    "courant_a_diff",
+    "courant_a_rolling_mean_3",
+    "courant_a_rolling_std_3",
+    "courant_a_rolling_mean_6",
+    "courant_a_rolling_std_6",
+    "current_voltage_ratio",
+    "meter_vs_zone_consumption",
+    "hour_sin",
+    "meter_id_SM_0049",
+    "meter_id_SM_0050",
+    "type_industriel"
+  ]
+}

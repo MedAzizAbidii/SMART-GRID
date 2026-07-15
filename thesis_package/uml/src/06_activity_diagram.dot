@@ -1,0 +1,67 @@
+digraph ActivityDiagram {
+  fontname="Helvetica";
+  labelloc="t";
+  label="Diagramme d'activité — Traitement d'une lecture de compteur";
+  fontsize=18;
+  rankdir=TB;
+  compound=true;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  START [shape=circle, style=filled, fillcolor=black, width=0.25, label=""];
+  END [shape=doublecircle, style=filled, fillcolor=black, width=0.28, label=""];
+
+  subgraph cluster_api {
+    label="API (api_server.py)"; style="rounded"; color="#eda100"; fontsize=11;
+    RECV [shape=box, style="rounded,filled", fillcolor="#f4cf7a", label="Recevoir la requête\nHTTP POST"];
+    VALID [shape=box, style="rounded,filled", fillcolor="#f4cf7a", label="Valider (Pydantic)"];
+    VALIDOK [shape=diamond, style=filled, fillcolor="#e1e0d9", label="Valide ?"];
+    ERR422 [shape=box, style="rounded,filled", fillcolor="#e34948", fontcolor=white, label="422 Unprocessable"];
+  }
+
+  subgraph cluster_ia {
+    label="Pipeline IA (ml_pipeline)"; style="rounded"; color="#2a78d6"; fontsize=11;
+    BUFCHECK [shape=diamond, style=filled, fillcolor="#e1e0d9", label="Buffer ≥ seq_len ?"];
+    BUFFER [shape=box, style="rounded,filled", fillcolor="#9ec5f4", label="Ajouter au buffer\n(ZoneAggregator mis à jour)"];
+    INSUFFICIENT [shape=box, style="rounded,filled", fillcolor="#e1e0d9", label="Retourner\n'insufficient_data'"];
+    FORWARD [shape=box, style="rounded,filled", fillcolor="#3987e5", fontcolor=white, label="Passe avant\n(EnsembleDetector)"];
+    EXPLAIN [shape=box, style="rounded,filled", fillcolor="#4a3aa7", fontcolor=white, label="Calculer XAI\n(integrated gradients,\nattention)"];
+    ANOMCHECK [shape=diamond, style=filled, fillcolor="#e1e0d9", label="Score > seuil\nadaptatif ?"];
+  }
+
+  subgraph cluster_chain {
+    label="Blockchain (blockchain/)"; style="rounded"; color="#1baf7a"; fontsize=11;
+    DEDUP [shape=diamond, style=filled, fillcolor="#e1e0d9", label="Anomalie déjà\nnotariée (dédup) ?"];
+    NOTARIZE [shape=box, style="rounded,filled", fillcolor="#1baf7a", fontcolor=white, label="Notariser\n(ingest_records)"];
+  }
+
+  subgraph cluster_obs {
+    label="Observabilité"; style="rounded"; color="#898781"; fontsize=11;
+    LOGPRED [shape=box, style="rounded,filled", fillcolor="#e1e0d9", label="Logger\n(predictions.log)"];
+    LOGATTACK [shape=box, style="rounded,filled", fillcolor="#e1e0d9", label="Logger\n(attacks.log)"];
+  }
+
+  RESP [shape=box, style="rounded,filled", fillcolor="#f4cf7a", label="Construire et\nrenvoyer la réponse JSON"];
+  ERR503 [shape=box, style="rounded,filled", fillcolor="#e34948", fontcolor=white, label="503 model_unavailable /\ninference_failed"];
+  MODELCHECK [shape=diamond, style=filled, fillcolor="#e1e0d9", label="Modèle chargé ?"];
+
+  START -> RECV -> VALID -> VALIDOK;
+  VALIDOK -> ERR422 [label="non"];
+  VALIDOK -> MODELCHECK [label="oui"];
+  MODELCHECK -> ERR503 [label="non"];
+  MODELCHECK -> BUFFER [label="oui"];
+  BUFFER -> BUFCHECK;
+  BUFCHECK -> INSUFFICIENT [label="non"];
+  BUFCHECK -> FORWARD [label="oui"];
+  FORWARD -> EXPLAIN -> ANOMCHECK;
+  ANOMCHECK -> LOGPRED [label="non"];
+  ANOMCHECK -> DEDUP [label="oui"];
+  DEDUP -> LOGPRED [label="oui (déjà connue)"];
+  DEDUP -> NOTARIZE [label="non (nouvelle)"];
+  NOTARIZE -> LOGATTACK -> LOGPRED;
+  LOGPRED -> RESP;
+  INSUFFICIENT -> RESP;
+  ERR422 -> END;
+  ERR503 -> END;
+  RESP -> END;
+}

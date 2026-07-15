@@ -1,0 +1,36 @@
+digraph TrainingPipeline {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  label="Pipeline d'entraînement (run_transformer_autoencoder.py)";
+  fontsize=18;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=9, color="#52514e"];
+
+  DATA [label="Jeu de données CSV\n(compteurs, plusieurs jours)", fillcolor="#cde2fb"];
+  SPLIT [label="Split temporel PAR COMPTEUR\n(--val-frac 0.15 --test-frac 0.15)\nAUCUNE fenêtre à cheval", fillcolor="#b7d3f6"];
+  TRAIN_SET [label="TRAIN\n(≈70%)", fillcolor="#9ec5f4"];
+  VAL_SET [label="VALIDATION\n(≈15%)", fillcolor="#9ec5f4"];
+  TEST_SET [label="TEST retenu\n(≈15%, jamais vu\navant l'évaluation finale)", fillcolor="#e34948", fontcolor=white];
+
+  FIT_SCALER [label="Ajustement du StandardScaler\nSUR TRAIN SEULEMENT", fillcolor="#6da7ec"];
+  PRETRAIN [label="Pré-entraînement\n(40 époques par défaut,\ntoutes lectures, non supervisé)", fillcolor="#3987e5", fontcolor=white];
+  FINETUNE [label="Fine-tuning\n(40 époques, lectures\nnormales uniquement)", fillcolor="#2a78d6", fontcolor=white];
+  EARLYSTOP [label="Early stopping\n(patience=8)", fillcolor="#256abf", fontcolor=white];
+  THRESHOLD [label="Sélection du seuil\nSUR VALIDATION SEULEMENT\n(stratégie F1/p95/p99/adaptatif)", fillcolor="#eda100"];
+  EVAL [label="Évaluation finale\nSUR TEST RETENU\n(métrique honnête à citer)", fillcolor="#e34948", fontcolor=white];
+  ARTIFACT [label="Artefacts sauvegardés\n(poids .pt, scaler,\ntraining_report.json)", fillcolor="#1baf7a", fontcolor=white];
+
+  DATA -> SPLIT;
+  SPLIT -> TRAIN_SET; SPLIT -> VAL_SET; SPLIT -> TEST_SET;
+  TRAIN_SET -> FIT_SCALER -> PRETRAIN -> FINETUNE -> EARLYSTOP;
+  VAL_SET -> THRESHOLD [label="ajustement seuil\n(pas le test)"];
+  EARLYSTOP -> THRESHOLD;
+  THRESHOLD -> EVAL;
+  TEST_SET -> EVAL [label="jamais utilisé\navant cette étape"];
+  EVAL -> ARTIFACT;
+
+  LEGACY [label="Mode --legacy\n(reproductibilité des runs\npré-correction de fuite,\nNON RECOMMANDÉ)", fillcolor="#e1e0d9", style="rounded,filled,dashed"];
+  DATA -> LEGACY [style=dashed, color="#898781"];
+  LEGACY -> ARTIFACT [style=dashed, color="#898781", label="modèles champions\nactuels (legacy)"];
+}

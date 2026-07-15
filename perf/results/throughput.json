@@ -1,0 +1,24 @@
+{
+  "simulator": {
+    "name": "simulator_samples_per_sec",
+    "window_sec": 10,
+    "count": 279580,
+    "samples_per_sec": 27958.0
+  },
+  "ingest_streaming": {
+    "name": "ingest_samples_per_sec (streaming, single-threaded)",
+    "window_sec": 10,
+    "count": 35,
+    "samples_per_sec": 3.5,
+    "implied_max_ms_per_sample": 285.71
+  },
+  "detection_with_blockchain": {
+    "name": "detections_per_sec (ingest + conditional blockchain notarization)",
+    "window_sec": 10,
+    "total_readings": 37,
+    "anomalies_detected": 37,
+    "readings_per_sec": 3.7,
+    "detections_per_sec": 3.7,
+    "final_block_count": 38
+  }
+}
