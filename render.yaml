@@ -30,9 +30,7 @@ services:
       - key: SGRID_API_PORT
         value: "8000"
       - key: SGRID_CORS_ALLOWED_ORIGINS
-        # Update with the real Vercel URL after the frontend is deployed —
-        # a wildcard "*" would defeat the point of CORS restriction.
-        value: '["https://your-app.vercel.app"]'
+        value: '["https://smart-grid1.vercel.app"]'
       - key: SGRID_RATE_LIMIT_REQUESTS_PER_MINUTE
         value: "120"
       - key: SGRID_JWT_SECRET_KEY
