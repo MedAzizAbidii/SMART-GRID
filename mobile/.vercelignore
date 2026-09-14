@@ -1,0 +1,8 @@
+# Native platform folders — irrelevant to the Flutter Web build Vercel runs.
+android/
+ios/
+linux/
+macos/
+windows/
+build/
+test/
