@@ -25,8 +25,15 @@ outputs/transformer_autoencoder*/
 outputs/*_old9col_backup/
 outputs/logs/
 
-# Large local data — mounted as a volume instead, never baked into the image
+# Large local data — mounted as a volume instead, never baked into the image.
+# Exception: the small "fast" datasets (~2.2MB total) ARE baked in — see
+# Dockerfile.backend's comment — because DataEngine.__init__() hard-fails at
+# import time with neither a volume mount nor a bundled fallback present.
 data/
+!data/clean/
+!data/clean/smartgrid_clean_fast.csv
+!data/attacks/
+!data/attacks/attacks_fast.csv
 ../data/
 
 # Editor/OS noise

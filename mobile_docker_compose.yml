@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  web:
+    image: nginx:1.27-alpine
+    ports:
+      - "5050:80"
+    volumes:
+      - "/c/Users/Batikha/Desktop/SMART GRID/smartgrid_simulation/mobile/build/web:/usr/share/nginx/html:ro"
+      - "/c/Users/Batikha/Desktop/SMART GRID/smartgrid_simulation/nginx_mobile.conf:/etc/nginx/conf.d/default.conf:ro"
+    environment:
+      - BACKEND_HOST=192.168.100.226
+      - BACKEND_PORT=8000
+    restart: unless-stopped
+    networks:
+      - smartgrid
+
+networks:
+  smartgrid:
+    driver: bridge

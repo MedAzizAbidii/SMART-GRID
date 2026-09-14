@@ -1,0 +1,108 @@
+/*
+  Design tokens — Smart Grid Cybersecurity Platform
+  Enterprise/industrial dark theme. Single source of truth for every
+  color, spacing, radius, shadow, and type value used across the app.
+  8px spacing system throughout.
+*/
+:root {
+  /* ── Color: surfaces ─────────────────────────────────────────── */
+  --color-bg: #0b121b;
+  --color-surface: #0e1722;
+  --color-card: #121e2a;
+  --color-card-hover: #172634;
+  --color-border: rgba(174, 198, 220, 0.12);
+  --color-border-strong: rgba(174, 198, 220, 0.2);
+
+  /* ── Color: brand / semantic ─────────────────────────────────── */
+  --color-primary: #3B82F6;
+  --color-primary-dim: rgba(59, 130, 246, 0.14);
+  --color-success: #22C55E;
+  --color-success-dim: rgba(34, 197, 94, 0.14);
+  --color-warning: #F59E0B;
+  --color-warning-dim: rgba(245, 158, 11, 0.14);
+  --color-critical: #EF4444;
+  --color-critical-dim: rgba(239, 68, 68, 0.14);
+  --color-info: #06B6D4;
+  --color-info-dim: rgba(6, 182, 212, 0.14);
+  --color-accent: #C6F135;
+  --color-accent-dim: rgba(198, 241, 53, 0.14);
+  --color-violet: #8B5CF6;
+  --color-violet-dim: rgba(139, 92, 246, 0.14);
+
+  /* ── Gradients ────────────────────────────────────────────────── */
+  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+  --gradient-hero: linear-gradient(105deg, rgba(59,130,246,0.10), rgba(6,182,212,0.025));
+  --gradient-sheen: none;
+  --color-glass: rgba(255, 255, 255, 0.03);
+
+  /* ── Color: text ──────────────────────────────────────────────── */
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  /* ── Spacing (8px system) ─────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 40px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ── Radius ───────────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /* ── Shadow ───────────────────────────────────────────────────── */
+  --shadow-card: none;
+  --shadow-elevated: 0 10px 24px rgba(0, 0, 0, 0.18);
+  --shadow-glow-primary: none;
+  --shadow-glow-accent: none;
+  --shadow-inset-top: none;
+
+  /* ── Typography ───────────────────────────────────────────────── */
+  --font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  --text-h1: 36px;
+  --text-h2: 25px;
+  --text-h3: 22px;
+  --text-card-title: 18px;
+  --text-body: 15px;
+  --text-small: 13px;
+  --text-micro: 11px;
+
+  --line-tight: 1.2;
+  --line-normal: 1.5;
+
+  /* ── Layout ───────────────────────────────────────────────────── */
+  --sidebar-width: 250px;
+  --topbar-height: 68px;
+  --page-margin: 28px;
+  --card-padding: 20px;
+  --card-radius: 10px;
+
+  /* ── Motion ───────────────────────────────────────────────────── */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-standard: 200ms;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #edf3f9;
+  --color-surface: #f8fbff;
+  --color-card: #ffffff;
+  --color-card-hover: #f1f6fb;
+  --color-border: rgba(25, 55, 85, 0.12);
+  --color-border-strong: rgba(25, 55, 85, 0.22);
+  --color-glass: rgba(12, 35, 59, 0.03);
+  --text-primary: #10233b;
+  --text-secondary: #536b83;
+  --text-muted: #758ba0;
+  --gradient-sheen: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 100%);
+  --shadow-card: 0 1px 2px rgba(29, 62, 94, 0.06), 0 8px 24px rgba(29, 62, 94, 0.08);
+  --shadow-elevated: 0 8px 24px rgba(29, 62, 94, 0.16);
+}

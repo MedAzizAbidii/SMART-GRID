@@ -13,5 +13,9 @@ COPY production/docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
+# 127.0.0.1, not localhost: wget resolves "localhost" to ::1 first on this
+# base image, and nginx isn't bound to IPv6, so the check always failed
+# with "connection refused" even though the server was working fine —
+# found via an actual `docker compose up` run, not caught by static review.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -q -O- http://localhost/ >/dev/null 2>&1 || exit 1
+    CMD wget -q -O- http://127.0.0.1/ >/dev/null 2>&1 || exit 1

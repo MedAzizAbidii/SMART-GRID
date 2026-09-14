@@ -14,7 +14,9 @@ import pandas as pd
 from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 
 # ── Opt-in API-key auth (production hardening) ─────────────────────────────
@@ -36,6 +38,62 @@ from production.middleware import RequestIdMiddleware, RateLimitMiddleware, regi
 from production.security.router import router as auth_router
 from production.security.auth import require_role
 from production.monitoring.health import build_health_router
+from production.blockchain.onchain_bridge import get_onchain_bridge
+from production.user_management.router import router as user_router
+
+# Database (Phase 3: PostgreSQL)
+from production.database.connection import get_db, SessionLocal
+from production.database.models import Base
+from production.database.service import DatabaseService
+
+# Circuit breaker: once a DB attempt fails, skip retries for this many seconds
+# instead of paying a fresh connect_timeout on every poll/tick while Postgres
+# is down (NullPool means every call opens a brand-new TCP connection).
+_DB_RETRY_COOLDOWN = 30.0
+_db_unavailable_until = 0.0
+
+
+def _db_is_known_down() -> bool:
+    return time.time() < _db_unavailable_until
+
+
+def _mark_db_down() -> None:
+    global _db_unavailable_until
+    _db_unavailable_until = time.time() + _DB_RETRY_COOLDOWN
+
+
+# Async helper to save alerts to database
+def _save_alert_to_db_async(bus_id: int, attack_type: str, confidence: float, description: str) -> None:
+    """Non-blocking helper to save alert to database (runs in background)."""
+    if _db_is_known_down():
+        return
+    try:
+        db = SessionLocal()
+        try:
+            severity = "critical" if confidence > 0.8 else "warning"
+            DatabaseService.create_or_update_alert(
+                db=db,
+                bus_id=bus_id,
+                alert_type="anomaly",
+                attack_type=attack_type,
+                confidence=confidence,
+                severity=severity,
+                description=description
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        _mark_db_down()
+        _loggers["app"].warning(f"Failed to save alert to database: {e}")
+
+# Firebase Cloud Messaging (FREE tier: 1M messages/month)
+try:
+    import firebase_admin
+    from firebase_admin import messaging
+    _FIREBASE_AVAILABLE = True
+except ImportError:
+    _FIREBASE_AVAILABLE = False
+    messaging = None
 
 _settings = get_settings()
 _loggers = setup_logging(_settings.log_dir, _settings.log_level)
@@ -59,6 +117,31 @@ try:
     _BLOCKCHAIN_AVAILABLE = True
 except ImportError:
     _BLOCKCHAIN_AVAILABLE = False
+
+# Realistic reading generator for the AI Detection / Explainable AI demo
+# buttons. /api/grid/all is a SEPARATE, simpler synthetic engine (SmartGrid
+# class in this file) used for the topology visualisation — it does not
+# share smart_meters_simulator.py's statistical distribution, so feeding its
+# output into /api/detect produces readings the model was never trained to
+# reconstruct (measured: reconstruction error 30-400x the real distribution's,
+# even though every engineered feature matches column-for-column). Root cause
+# found by direct comparison against scenario_test.py, which validates the
+# same champion model at a genuine 5.17% false-positive rate using exactly
+# smart_meters_simulator._make_row() + its zone-peer seeding pattern.
+try:
+    import sys as _sys2
+    from pathlib import Path as _Path
+    # Local copy lives alongside api_server.py (kept in sync with the
+    # canonical copy one directory up) so the Docker build context — which
+    # only COPYs smartgrid_simulation/ — includes it without widening the
+    # build context to the parent directory.
+    _sim_root = str(_Path(__file__).resolve().parent)
+    if _sim_root not in _sys2.path:
+        _sys2.path.insert(0, _sim_root)
+    from smart_meters_simulator import _make_row as _sim_make_row, _ZONE_OF as _SIM_ZONE_OF
+    _DEMO_SIM_AVAILABLE = True
+except ImportError:
+    _DEMO_SIM_AVAILABLE = False
 
 
 def _model_dump(model: BaseModel) -> Dict[str, Any]:
@@ -612,16 +695,25 @@ class DataEngine:
         if now - last < cooldown:
             return
 
+        confidence = 0.8 if data.attack_type == "fdia" else 0.7
         alert = AttackAlert(
             timestamp=now,
             bus_id=data.bus_id,
             attack_type=data.attack_type,
-            confidence=0.8 if data.attack_type == "fdia" else 0.7,
+            confidence=confidence,
             description=f"{data.attack_type.upper()} detected on bus {data.bus_id}",
         )
         self.alert_history.append(alert)
         self.alert_history = self.alert_history[-200:]
         self.last_alert_at[data.bus_id] = now
+
+        # Save alert to PostgreSQL database (non-blocking)
+        _save_alert_to_db_async(
+            bus_id=data.bus_id,
+            attack_type=data.attack_type,
+            confidence=confidence,
+            description=alert.description
+        )
 
         # Atomic blockchain notarization for every new alert
         if _BLOCKCHAIN_AVAILABLE and _live_ledger is not None:
@@ -633,9 +725,33 @@ class DataEngine:
                     "timestamp": now,
                     "source": "api_server",
                 }
-                _live_ledger.ingest_records([record])
+                _live_ledger.ingest_live_record(record)
+                _schedule_onchain_notarize(alert.confidence, f"bus_{data.bus_id}", data.attack_type)
             except Exception:
                 pass
+
+        # Send push notification (Firebase - FREE tier)
+        if _FIREBASE_AVAILABLE:
+            try:
+                severity = "critical" if alert.confidence > 0.8 else "warning"
+                message = messaging.Message(
+                    notification=messaging.Notification(
+                        title=f"⚠️ Grid Alert: {data.attack_type.upper()}",
+                        body=f"Bus {data.bus_id} - Confidence: {alert.confidence*100:.0f}%",
+                    ),
+                    data={
+                        "alert_id": str(id(alert)),
+                        "bus_id": str(data.bus_id),
+                        "severity": severity,
+                        "attack_type": data.attack_type,
+                        "confidence": str(alert.confidence),
+                        "timestamp": str(int(now)),
+                    },
+                    topic="alerts",
+                )
+                messaging.send(message)
+            except Exception as e:
+                _loggers["app"].error(f"FCM send failed: {e}")
 
     async def tick(self) -> None:
         if self._packet_tracer_live():
@@ -702,6 +818,88 @@ if _BLOCKCHAIN_AVAILABLE:
     except Exception:
         _live_ledger = None
 
+# On-chain anchoring cursor: the last PoA block index we know to be
+# anchored on the public network. None means "not yet synced from chain" —
+# lazily read from the contract itself (source of truth) on first use, so a
+# backend restart never re-attempts an already-anchored index and wastes
+# real gas on a guaranteed revert (PoAAnchor requires a strictly increasing
+# index; see onchain/contracts/PoAAnchor.sol).
+_onchain_last_anchored_index: "int | None" = None
+
+
+def _sync_onchain_anchor_cursor(bridge) -> int:
+    """Reads the real anchor cursor from the contract. `lastAnchoredIndex`
+    defaults to 0 in Solidity whether or not anything has ever been
+    anchored, which is indistinguishable from "block 0 (genesis) was
+    anchored" — so `anchorCount` must be checked too, otherwise the
+    genesis block could never be anchored (every check would wrongly read
+    it as already done)."""
+    global _onchain_last_anchored_index
+    try:
+        contract = bridge.contracts["PoAAnchor"]
+        anchor_count = contract.functions.anchorCount().call()
+        _onchain_last_anchored_index = contract.functions.lastAnchoredIndex().call() if anchor_count > 0 else -1
+    except Exception:
+        _loggers["blockchain"].exception("onchain: failed to sync anchor cursor from chain")
+        _onchain_last_anchored_index = -1
+    return _onchain_last_anchored_index
+
+
+async def _maybe_onchain_notarize(confidence: "float | None", record_id: str, attack_type: str) -> None:
+    """Fire-and-forget bridge from the local PoA ledger to the real
+    on-chain contracts (production/blockchain/onchain_bridge.py). No-ops
+    silently if the bridge is disabled/unconfigured (default) — this must
+    never affect detection latency or block a request, so RPC calls run in
+    a worker thread and this coroutine is scheduled via loop.create_task
+    (not awaited) by its callers.
+    """
+    bridge = get_onchain_bridge()
+    if bridge is None or _live_ledger is None:
+        return
+
+    global _onchain_last_anchored_index
+    if _onchain_last_anchored_index is None:
+        await asyncio.to_thread(_sync_onchain_anchor_cursor, bridge)
+
+    settings = get_settings()
+    latest_block = _live_ledger.chain[-1]
+    should_anchor = (
+        latest_block.index > _onchain_last_anchored_index
+        and latest_block.index - _onchain_last_anchored_index >= settings.onchain_anchor_every_n_blocks
+    )
+    should_record = confidence is not None and confidence >= settings.onchain_min_confidence_to_record
+    if not should_anchor and not should_record:
+        return
+
+    def _submit() -> None:
+        if should_anchor:
+            try:
+                bridge.anchor_block(latest_block.index, latest_block.block_hash)
+            except Exception:
+                _loggers["blockchain"].exception("onchain anchor failed")
+        if should_record:
+            try:
+                bridge.record_anomaly(record_id, attack_type, confidence or 0.0, latest_block.block_hash)
+            except Exception:
+                _loggers["blockchain"].exception("onchain anomaly record failed")
+
+    await asyncio.to_thread(_submit)
+    if should_anchor:
+        _onchain_last_anchored_index = latest_block.index
+
+
+def _schedule_onchain_notarize(confidence: "float | None", record_id: str, attack_type: str) -> None:
+    """Sync-context helper: schedules _maybe_onchain_notarize on the running
+    event loop without awaiting it, so callers in sync code (_maybe_add_alert)
+    or already-returning async handlers (_finalize_detection) never block on
+    on-chain RPC latency."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    loop.create_task(_maybe_onchain_notarize(confidence, record_id, attack_type))
+
+
 # ML real-time detector (loads model from outputs/ if available)
 _ml_detector = None
 if _ML_AVAILABLE:
@@ -725,6 +923,14 @@ SILICON_ZONE_TO_BUS: Dict[str, int] = {
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # Initialize database tables on startup
+    try:
+        from production.database.connection import engine as db_engine
+        Base.metadata.create_all(bind=db_engine)
+        _loggers["system"].info("Database tables initialized")
+    except Exception as e:
+        _loggers["system"].error(f"Failed to initialize database: {e}")
+
     task = asyncio.create_task(engine.run_loop())
     try:
         yield
@@ -764,6 +970,7 @@ _loggers["app"].info("API server configured", extra=log_extra(
 
 _DASH_DIR  = os.path.join(os.path.dirname(__file__), "dashboard")
 _DASH_HTML = os.path.join(_DASH_DIR, "index.html")
+app.mount("/assets", StaticFiles(directory=os.path.join(_DASH_DIR, "assets")), name="dashboard-assets")
 
 
 def _serve_app() -> FileResponse:
@@ -911,6 +1118,111 @@ async def ingest_grid_data(payload: ExternalGridData,
         "bus_id": entry.bus_id,
         "stored": _model_dump(entry),
     }
+
+
+@app.get("/api/meters")
+async def get_all_meters(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Get all smart meters with latest readings from database."""
+    if not _db_is_known_down():
+        try:
+            meters = DatabaseService.get_all_smart_meters(db=db)
+            return {
+                "meters": [
+                    {
+                        "id": m.id,
+                        "bus_id": m.bus_id,
+                        "voltage": m.voltage,
+                        "current": m.current,
+                        "power": m.power,
+                        "frequency": m.frequency,
+                        "status": m.status,
+                        "consumer_type": m.consumer_type,
+                        "last_reading": m.last_reading.isoformat() if m.last_reading else None,
+                    }
+                    for m in meters
+                ],
+                "count": len(meters),
+            }
+        except Exception as e:
+            _mark_db_down()
+            _loggers["app"].warning(f"Database meters query failed: {e}, using live data")
+
+    # Fallback to live engine data
+    return {
+        "timestamp": time.time(),
+        "buses": [_model_dump(data) for _, data in sorted(engine.latest_data.items())],
+        "count": len(engine.latest_data),
+    }
+
+
+@app.get("/api/meters/{bus_id}")
+async def get_meter(bus_id: int, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Get a specific meter's data from database."""
+    if not _db_is_known_down():
+        try:
+            meter = DatabaseService.get_smart_meter(db=db, bus_id=bus_id)
+            if meter:
+                return {
+                    "id": meter.id,
+                    "bus_id": meter.bus_id,
+                    "voltage": meter.voltage,
+                    "current": meter.current,
+                    "power": meter.power,
+                    "frequency": meter.frequency,
+                    "status": meter.status,
+                    "consumer_type": meter.consumer_type,
+                    "last_reading": meter.last_reading.isoformat() if meter.last_reading else None,
+                }
+        except Exception as e:
+            _mark_db_down()
+            _loggers["app"].warning(f"Database meter query failed: {e}")
+
+    # Fallback to live data
+    data = engine.latest_data.get(bus_id)
+    if data is None:
+        return JSONResponse(status_code=404, content={"error": f"Bus {bus_id} not found"})
+    return _model_dump(data)
+
+
+@app.post("/api/meters/{bus_id}/update")
+async def update_meter(
+    bus_id: int,
+    voltage: float | None = None,
+    current: float | None = None,
+    power: float | None = None,
+    frequency: float | None = None,
+    status: str | None = None,
+    db: Session = Depends(get_db),
+    _auth = Depends(require_role("grid_operator"))
+) -> Dict[str, Any]:
+    """Update smart meter readings in database."""
+    try:
+        meter = DatabaseService.update_smart_meter(
+            db=db,
+            bus_id=bus_id,
+            voltage=voltage,
+            current=current,
+            power=power,
+            frequency=frequency,
+            status=status
+        )
+        if meter:
+            return {
+                "status": "updated",
+                "bus_id": bus_id,
+                "meter": {
+                    "voltage": meter.voltage,
+                    "current": meter.current,
+                    "power": meter.power,
+                    "frequency": meter.frequency,
+                    "status": meter.status,
+                }
+            }
+        else:
+            return {"status": "error", "message": f"Meter {bus_id} not found"}
+    except Exception as e:
+        _loggers["app"].error(f"Failed to update meter: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/integrations/silicon-apocalypse/event")
@@ -1089,12 +1401,220 @@ async def get_packet_tracer_commands(consume: bool = Query(default=True), limit:
 
 
 @app.get("/api/alerts")
-async def get_alerts(limit: int = Query(default=10, ge=1, le=200)) -> Dict[str, Any]:
+async def get_alerts(
+    limit: int = Query(default=10, ge=1, le=200),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    # Get alerts from database, fall back to in-memory if needed
+    if not _db_is_known_down():
+        try:
+            alerts = DatabaseService.get_active_alerts(db, limit=limit)
+            if alerts:
+                return {
+                    "alerts": [
+                        {
+                            "id": a.id,
+                            "timestamp": a.created_at.timestamp() if a.created_at else time.time(),
+                            "bus_id": a.bus_id,
+                            "attack_type": a.attack_type,
+                            "confidence": a.confidence,
+                            "description": a.description,
+                            "severity": a.severity,
+                            "is_resolved": a.is_resolved,
+                        }
+                        for a in alerts
+                    ],
+                    "count": len(alerts),
+                }
+        except Exception as e:
+            _mark_db_down()
+            _loggers["app"].warning(f"Database alerts query failed: {e}, falling back to in-memory")
+
+    # Fallback to in-memory alerts
     alerts = engine.alert_history[-limit:]
     return {
         "alerts": [_model_dump(a) for a in alerts],
         "count": len(engine.alert_history),
     }
+
+
+@app.post("/api/alerts/{alert_id}/resolve")
+async def resolve_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    _auth = Depends(require_role("grid_operator"))
+) -> Dict[str, Any]:
+    """Resolve an alert by marking it as handled."""
+    try:
+        alert = DatabaseService.resolve_alert(db=db, alert_id=alert_id)
+        if alert:
+            _loggers["app"].info(f"Alert {alert_id} resolved by {_auth.get('username', 'unknown')}")
+            return {
+                "status": "resolved",
+                "alert_id": alert.id,
+                "message": f"Alert {alert_id} marked as resolved"
+            }
+        else:
+            return {"status": "error", "message": f"Alert {alert_id} not found"}
+    except Exception as e:
+        _loggers["app"].error(f"Failed to resolve alert: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/alerts/bus/{bus_id}")
+async def get_alerts_by_bus(
+    bus_id: int,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get all alerts for a specific bus."""
+    try:
+        alerts = DatabaseService.get_alerts_by_bus(db=db, bus_id=bus_id)
+        return {
+            "bus_id": bus_id,
+            "alerts": [
+                {
+                    "id": a.id,
+                    "timestamp": a.created_at.timestamp() if a.created_at else time.time(),
+                    "attack_type": a.attack_type,
+                    "confidence": a.confidence,
+                    "severity": a.severity,
+                    "description": a.description,
+                    "is_resolved": a.is_resolved,
+                }
+                for a in alerts
+            ],
+            "count": len(alerts),
+        }
+    except Exception as e:
+        _loggers["app"].error(f"Failed to get alerts for bus {bus_id}: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/audit-log")
+async def get_audit_logs(
+    limit: int = Query(default=100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    _auth = Depends(require_role("administrator"))
+) -> Dict[str, Any]:
+    """Get audit log entries (admin only)."""
+    try:
+        # This endpoint would need an audit log retrieval method in DatabaseService
+        # For now, return a structured response
+        return {
+            "logs": [],
+            "count": 0,
+            "message": "Audit logging framework ready for implementation"
+        }
+    except Exception as e:
+        _loggers["app"].error(f"Failed to get audit logs: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+# ── Push Notifications (Firebase Cloud Messaging) ─────────────────────
+class FCMTokenRequest(BaseModel):
+    token: str
+    device_name: str | None = None
+
+
+class PushNotificationRequest(BaseModel):
+    title: str
+    body: str
+    alert_id: int | None = None
+    severity: str = "info"
+    data: Dict[str, Any] | None = None
+
+
+@app.post("/api/auth/fcm-register")
+async def register_fcm_token(
+    request: FCMTokenRequest,
+    db: Session = Depends(get_db),
+    _auth = Depends(require_role("viewer"))
+) -> Dict[str, Any]:
+    """Register FCM token for push notifications (FREE Firebase tier)"""
+    try:
+        username = _auth.get("username", "anonymous") if isinstance(_auth, dict) else "anonymous"
+
+        # Store in PostgreSQL database
+        fcm = DatabaseService.register_fcm_token(
+            db=db,
+            username=username,
+            token=request.token,
+            device_name=request.device_name
+        )
+
+        # Count active tokens
+        active_tokens = DatabaseService.get_active_fcm_tokens(db)
+
+        _loggers["app"].info(
+            "FCM token registered",
+            extra=log_extra(device=request.device_name, token=request.token[:20])
+        )
+
+        return {
+            "status": "registered",
+            "token_count": len(active_tokens),
+            "message": "Push notifications enabled"
+        }
+    except Exception as e:
+        _loggers["app"].error("FCM registration failed", extra=log_extra(error=str(e)))
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/api/alerts/notify")
+async def send_push_notification(
+    request: PushNotificationRequest,
+    _auth = Depends(require_role("grid_operator"))
+) -> Dict[str, Any]:
+    """Send push notification to all subscribed users (FREE Firebase tier)"""
+
+    if not _FIREBASE_AVAILABLE:
+        return {
+            "status": "skipped",
+            "reason": "Firebase not initialized",
+            "message": "Push notifications not available"
+        }
+
+    try:
+        # Create notification message for FCM
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=request.title,
+                body=request.body,
+            ),
+            data={
+                "alert_id": str(request.alert_id or 0),
+                "severity": request.severity,
+                "timestamp": str(int(time.time())),
+                **(request.data or {})
+            },
+            topic="alerts",  # Send to all users subscribed to "alerts" topic
+        )
+
+        response = messaging.send(message)
+
+        _loggers["app"].info(
+            "Push notification sent",
+            extra=log_extra(
+                title=request.title,
+                severity=request.severity,
+                message_id=response
+            )
+        )
+
+        return {
+            "status": "sent",
+            "message_id": response,
+            "title": request.title,
+            "recipients": "all subscribed to alerts topic",
+            "timestamp": time.time()
+        }
+
+    except Exception as e:
+        _loggers["app"].error(
+            "Failed to send push notification",
+            extra=log_extra(error=str(e), title=request.title)
+        )
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/simulate/attack")
@@ -1281,11 +1801,14 @@ def _finalize_detection(reading: "SmartMeterReading", raw: dict, result: dict) -
                 "timestamp": float(raw["timestamp"]) if isinstance(raw["timestamp"], (int, float)) else time.time(),
                 "source": "ml_detect_endpoint",
             }
-            _live_ledger.ingest_records([blockchain_record])
+            _live_ledger.ingest_live_record(blockchain_record)
             result["blockchain_notarized"] = True
             result["blockchain_blocks"] = len(_live_ledger.chain)
             _loggers["blockchain"].info("record notarized", extra=log_extra(
                 meter_id=reading.meter_id, blocks=len(_live_ledger.chain)))
+            _schedule_onchain_notarize(
+                result.get("confidence"), reading.meter_id, result.get("attack_type", "unknown")
+            )
         except Exception as exc:
             result["blockchain_notarized"] = False
             result["blockchain_error"] = str(exc)
@@ -1295,6 +1818,80 @@ def _finalize_detection(reading: "SmartMeterReading", raw: dict, result: dict) -
         result["blockchain_notarized"] = False
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Demo reading generator — AI Detection / Explainable AI "live feed" buttons
+# ---------------------------------------------------------------------------
+# Feeds smart_meters_simulator._make_row() (the same generator that produced
+# the model's actual training distribution) through /api/detect internally,
+# instead of the frontend hand-building a reading from /api/grid/all's
+# unrelated synthetic engine. See _DEMO_SIM_AVAILABLE import comment above.
+_demo_sessions: dict[str, dict[str, Any]] = {}
+
+
+@app.post("/api/demo/realistic-reading")
+async def demo_realistic_reading(meter_idx: int = Query(default=1, ge=1, le=50)) -> Dict[str, Any]:
+    """Generate and score one realistic reading for a demo meter.
+
+    Call this repeatedly (e.g. every 1.5s) to build a live sequence for the
+    same meter_idx — each call advances that meter's own simulated clock and
+    RNG state, so consecutive calls form a coherent time series exactly like
+    scenario_test.py's validated harness, rather than resetting to a fresh
+    random reading every time.
+    """
+    if not _DEMO_SIM_AVAILABLE:
+        return JSONResponse(status_code=503, content={
+            "error": "demo_simulator_unavailable",
+            "detail": "smart_meters_simulator.py could not be imported.",
+        })
+
+    import numpy as _np
+    from datetime import datetime as _dt, timedelta as _td
+
+    key = f"SM_{meter_idx:04d}"
+    session = _demo_sessions.get(key)
+    if session is None:
+        rng = _np.random.default_rng(2026 + meter_idx)
+        ts = _dt(2026, 7, 1, 8, 0, 0)
+        zone = _SIM_ZONE_OF[meter_idx]
+        peers = [i for i, z in _SIM_ZONE_OF.items() if z == zone and i != meter_idx][:4]
+        # Warm the shared zone aggregator with a few same-zone peers, exactly
+        # like scenario_test.seed_zone_peers() — without this, a lone demo
+        # meter's zone_consumption_mean collapses to its own value only.
+        seed_ts = _dt(2026, 7, 1, 7, 0, 0)
+        for peer_idx in peers:
+            peer_row = _sim_make_row(peer_idx, seed_ts, rng)
+            _reading_to_raw_and_ingest(peer_row)
+        session = {"rng": rng, "ts": ts}
+        _demo_sessions[key] = session
+
+    row = _sim_make_row(meter_idx, session["ts"], session["rng"])
+    session["ts"] = session["ts"] + _td(minutes=2)
+
+    reading = SmartMeterReading(
+        meter_id=row["meter_id"], timestamp=row["timestamp"],
+        consommation_kw=row["consommation_kw"], tension_v=row["tension_v"],
+        courant_a=row["courant_a"], power_factor=row["power_factor"],
+        frequency_hz=row["frequency_hz"], zone=row["zone"], type=row["type"],
+    )
+    return await detect_anomaly(reading)
+
+
+def _reading_to_raw_and_ingest(row: dict) -> None:
+    """Feed one simulator-generated row through the detector without scoring
+    it as a demo result — used only to warm zone-peer state (see caller)."""
+    if not _ML_AVAILABLE or _ml_detector is None:
+        return
+    try:
+        _ml_detector.ingest({
+            "meter_id": row["meter_id"], "timestamp": row["timestamp"],
+            "consommation_kw": row["consommation_kw"], "tension_v": row["tension_v"],
+            "courant_a": row["courant_a"], "power_factor": row["power_factor"],
+            "frequency_hz": row["frequency_hz"], "zone": row["zone"], "type": row["type"],
+        })
+    except Exception:
+        pass
 
 
 @app.post("/api/detect/batch")
@@ -1396,6 +1993,57 @@ async def blockchain_status() -> Dict[str, Any]:
     }
 
 
+@app.get("/api/blockchain/onchain/status")
+async def onchain_status() -> Dict[str, Any]:
+    """Real on-chain layer status (production/blockchain/onchain_bridge.py).
+    Disabled by default (SGRID_ONCHAIN_ENABLED=0) — the local PoA ledger
+    above works identically either way. When enabled, reports the deployed
+    contract addresses on the configured network (Sepolia by default) and
+    how many anomalies/blocks have been anchored so far."""
+    bridge = get_onchain_bridge()
+    if bridge is None:
+        return {
+            "enabled": False,
+            "reason": "on-chain bridge disabled or unconfigured (set SGRID_ONCHAIN_ENABLED=1, "
+                      "SGRID_ONCHAIN_RPC_URL, SGRID_ONCHAIN_PRIVATE_KEY)",
+        }
+    try:
+        return await asyncio.to_thread(bridge.status)
+    except Exception as exc:
+        return JSONResponse(status_code=503, content={"enabled": True, "error": str(exc)})
+
+
+@app.post("/api/blockchain/onchain/anchor")
+async def onchain_anchor_now(_auth=Depends(require_role("administrator"))) -> Dict[str, Any]:
+    """Manually anchors the latest local PoA block hash on-chain right now,
+    bypassing the SGRID_ONCHAIN_ANCHOR_EVERY_N_BLOCKS interval. Useful for
+    a live demo/defense where waiting for the automatic interval isn't
+    practical. Administrator-only since each call spends real testnet gas."""
+    bridge = get_onchain_bridge()
+    if bridge is None:
+        return JSONResponse(status_code=503, content={"error": "on-chain bridge disabled or unconfigured"})
+    if _live_ledger is None or len(_live_ledger.chain) == 0:
+        return JSONResponse(status_code=503, content={"error": "local PoA ledger unavailable"})
+
+    latest_block = _live_ledger.chain[-1]
+    onchain_last_index = await asyncio.to_thread(_sync_onchain_anchor_cursor, bridge)
+    if latest_block.index <= onchain_last_index:
+        return {
+            "anchored": False,
+            "reason": "latest local PoA block is already anchored on-chain",
+            "poa_block_index": latest_block.index,
+            "last_anchored_index": onchain_last_index,
+        }
+
+    try:
+        tx_hash = await asyncio.to_thread(bridge.anchor_block, latest_block.index, latest_block.block_hash)
+        global _onchain_last_anchored_index
+        _onchain_last_anchored_index = latest_block.index
+        return {"anchored": True, "poa_block_index": latest_block.index, "poa_block_hash": latest_block.block_hash, "tx_hash": tx_hash}
+    except Exception as exc:
+        return JSONResponse(status_code=502, content={"anchored": False, "error": str(exc)})
+
+
 @app.get("/api/model/registry")
 async def model_registry_list() -> Dict[str, Any]:
     """All registered model versions with metrics and champion status."""
@@ -1440,6 +2088,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             engine.active_connections.remove(websocket)
 
 
+# Mount user management router
+app.include_router(user_router, tags=["user_management"])
+
 if __name__ == "__main__":
     import uvicorn
 
@@ -1450,6 +2101,7 @@ if __name__ == "__main__":
     print("Docs: http://127.0.0.1:8000/docs")
     print("Dashboard: http://127.0.0.1:8000/dashboard")
     print("WebSocket: ws://127.0.0.1:8000/ws")
+    print("User Management: http://127.0.0.1:8000/api/users")
     print("=" * 60)
 
     uvicorn.run("api_server:app", host="0.0.0.0", port=8000, reload=False)

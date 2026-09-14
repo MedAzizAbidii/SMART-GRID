@@ -58,6 +58,16 @@ class Settings(BaseSettings):
     blockchain_block_size: int = Field(default=20)
     blockchain_data_dir: str = Field(default=str(ROOT.parent / "data" / "blockchain"))
 
+    # ── on-chain bridge (real Ethereum/Sepolia, additive to the local PoA
+    #    ledger above — see production/blockchain/onchain_bridge.py) ─────────
+    onchain_enabled: bool = Field(default=False)
+    onchain_network: str = Field(default="sepolia")  # matches onchain/hardhat.config.js network name
+    onchain_rpc_url: str | None = Field(default=None)
+    onchain_private_key: str | None = Field(default=None)
+    onchain_dir: str = Field(default=str(ROOT / "onchain"))
+    onchain_anchor_every_n_blocks: int = Field(default=5)
+    onchain_min_confidence_to_record: float = Field(default=0.7)
+
     # ── logging ──────────────────────────────────────────────────────────────
     log_dir: str = Field(default=str(ROOT / "logs"))
     log_level: str = Field(default="INFO")

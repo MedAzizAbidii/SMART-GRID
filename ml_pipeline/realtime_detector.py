@@ -462,6 +462,32 @@ class RealtimeDetector:
             "inference_ms": round(latency, 2),
         }
 
+    def seed_history(self, meter_id: str, readings: list[dict[str, Any]]) -> None:
+        """Pre-fill a meter's rolling buffer with real prior readings, without
+        running inference on any of them.
+
+        Root cause this works around: training computes diff/rolling features
+        over each meter's full continuous history (see load_dataset() sorting
+        by meter_id then timestamp before add_smart_meter_features() runs).
+        A brand-new live meter_id starts with an EMPTY buffer, so its first
+        seq_len+6 readings compute rolling_std/rolling_mean over only 1-6
+        points instead of a converged real window — this alone was measured
+        to inflate reconstruction error by ~2 orders of magnitude even when
+        every other feature matches the offline pipeline exactly (verified by
+        direct feature-vector diff against outputs/early_stopping_final's
+        recorded predictions). Seeding with real history before the first
+        live `ingest()` call closes that gap the same way replaying recent
+        telemetry would for a real onboarding meter in production.
+        """
+        if meter_id not in self._buffers:
+            self._buffers[meter_id] = deque(maxlen=self._buffer_retain)
+        for reading in readings[-self._buffer_retain:]:
+            self._buffers[meter_id].append(reading)
+            zone = reading.get("zone")
+            consumption = reading.get("consommation_kw")
+            if zone is not None and consumption is not None:
+                _ZONE_AGGREGATOR.update(str(zone), meter_id, float(consumption))
+
     def get_calibrated_probability(self, raw_score: float) -> float | None:
         """Return P(anomaly | score) via Platt scaling, or None if not calibrated."""
         if self._calib_a is None:
@@ -684,6 +710,10 @@ class EnsembleDetector:
     @property
     def threshold_tracker(self) -> "MeterThresholdTracker":
         return self._v2.threshold_tracker
+
+    def seed_history(self, meter_id: str, readings: list[dict[str, Any]]) -> None:
+        self._v2.seed_history(meter_id, readings)
+        self._v3.seed_history(meter_id, readings)
 
     def ingest(self, reading: dict[str, Any]) -> dict[str, Any]:
         result_v2 = self._v2.ingest(reading)

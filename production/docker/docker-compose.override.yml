@@ -1,0 +1,12 @@
+# docker-compose.override.yml — auto-merged by `docker compose up` alongside
+# docker-compose.yml. Local-dev-only additions live here so the main file
+# stays a clean, defensible production reference (untouched by whatever LAN
+# IP this laptop happens to have today for mobile-app testing over WiFi).
+#
+# Not meant to be committed as permanent config — update the IP below
+# whenever the mobile dev server's LAN address changes (DHCP renewal).
+services:
+  backend:
+    environment:
+      SGRID_CORS_ALLOWED_ORIGINS: '["http://localhost:8080","http://localhost:3000","http://192.168.100.226:5050"]'
+      SGRID_RATE_LIMIT_REQUESTS_PER_MINUTE: "600"

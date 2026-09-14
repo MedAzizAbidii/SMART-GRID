@@ -1,0 +1,41 @@
+# Production runtime dependencies for api_server.py ONLY.
+#
+# requirements.txt (the dev/research superset) pulls in pypowsybl, seaborn,
+# matplotlib, shap, and their transitive numba/llvmlite chain — none of which
+# api_server.py, ml_pipeline/realtime_detector.py, or production/* ever
+# import (verified: grep across every production module found zero matches).
+# Those alone add ~350MB to the installed environment, which pushes a
+# 512MB-RAM deployment target (e.g. Render's free tier) over budget before
+# the model itself is even loaded. This file is the trimmed set the backend
+# Dockerfile actually installs; requirements.txt stays the source of truth
+# for local dev / research scripts that DO use the heavier libraries.
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+scipy>=1.10.0
+fastapi>=0.110.0
+uvicorn>=0.29.0
+requests>=2.31.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+cryptography>=48.0.1
+# torch is installed separately in the Dockerfile from the official CPU-only
+# wheel index (https://download.pytorch.org/whl/cpu) to avoid pulling CUDA
+# runtime libraries. If installing this file directly for local dev, add:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# or just `pip install torch` if you want/need GPU support locally.
+
+# --- production hardening (Phase 6) ---
+pydantic-settings>=2.4.0
+email-validator>=2.0.0
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
+prometheus-client>=0.20.0
+httpx>=0.27.0
+psutil>=5.9.0
+python-multipart>=0.0.9
+
+# --- security pins (pip-audit findings, Phase 6 security review) ---
+starlette>=1.3.1
+pillow>=12.3.0
+setuptools>=78.1.1,<82

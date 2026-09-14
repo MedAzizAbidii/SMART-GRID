@@ -196,6 +196,17 @@ class ProofOfAuthorityLedger:
         for batch in _chunked(records, self.block_size):
             self.chain.append(self._build_block(list(batch)))
 
+    def ingest_live_record(self, payload: dict[str, Any]) -> None:
+        """Notarize a single record produced outside the CSV pipeline (e.g. a
+        real-time /api/detect call). ingest_records() expects every record to
+        already carry row_index/row_hash, which load_csv_records() normally
+        computes — a live caller has neither, so this fills them in the same
+        way before delegating to ingest_records()."""
+        row_index = sum(block.transaction_count for block in self.chain)
+        record: dict[str, Any] = {"row_index": row_index, **payload}
+        record["row_hash"] = _sha256_text(_canonical_json(record))
+        self.ingest_records([record])
+
     def validate(self) -> tuple[bool, list[str]]:
         errors: list[str] = []
         authority_map = {authority.label: authority for authority in self.authorities}

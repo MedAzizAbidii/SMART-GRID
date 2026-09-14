@@ -1,5 +1,5 @@
 {
-  "_comment": "DEV-ONLY user store, hashes only — no plaintext passwords in this file. Default dev passwords are documented in production/docs/operator_manual.md (change them before any non-local use). Swap this file for a real user table/IdP in production (see production/docs/deployment_guide.md).",
+  "_comment": "DEV-ONLY user store, hashes only \u2014 no plaintext passwords in this file. Default dev passwords are documented in production/docs/operator_manual.md (change them before any non-local use). Swap this file for a real user table/IdP in production (see production/docs/deployment_guide.md).",
   "users": [
     {
       "username": "admin",

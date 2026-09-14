@@ -18,19 +18,37 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY requirements.txt ./requirements.txt
-# pypowsybl/seaborn/shap are heavy and only used by offline analysis scripts,
-# not the runtime API path; installed anyway for parity with the dev venv so
-# any endpoint that happens to import them at runtime still works unmodified.
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-prod.txt ./requirements-prod.txt
+# requirements-prod.txt is the trimmed runtime set — pypowsybl/seaborn/
+# matplotlib/shap and their numba/llvmlite chain are excluded because no
+# production module imports them (verified by grep), and they add ~350MB
+# the image doesn't need. Use requirements.txt only for local dev/research.
+#
+# torch is installed separately, pinned to the official CPU-only wheel index
+# — this container has no GPU, and the default PyPI wheel can otherwise pull
+# CUDA runtime libraries (multiple hundred extra MB) depending on the build
+# environment's detected platform tags.
+# --timeout/--retries: torch wheels are 200-500MB; pip's default 15s read
+# timeout is too tight on a slow/unstable connection and causes spurious
+# ReadTimeoutError mid-download.
+RUN pip install --no-cache-dir --timeout=180 --retries=8 \
+        torch --extra-index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir --timeout=180 --retries=8 \
+        -r requirements-prod.txt
 
-COPY api_server.py config.py ./
+COPY api_server.py config.py smart_meters_simulator.py ./
 COPY ml_pipeline/ ./ml_pipeline/
 COPY blockchain/ ./blockchain/
 COPY dashboard/ ./dashboard/
 COPY production/ ./production/
 COPY outputs/early_stopping_final/ ./outputs/early_stopping_final/
 COPY outputs/test_run_now/ ./outputs/test_run_now/
+# DataEngine.__init__() hard-fails at import time (before uvicorn can even
+# start) if neither the clean nor attack dataset is present — bundling the
+# small "fast" variants (~2.2MB total) means the image boots standalone on
+# a host like Render with no volume mount, instead of requiring one.
+COPY data/clean/smartgrid_clean_fast.csv ./data/clean/smartgrid_clean_fast.csv
+COPY data/attacks/attacks_fast.csv ./data/attacks/attacks_fast.csv
 
 # Non-root runtime user (a container running as root is an unnecessary
 # privilege-escalation surface if the app is ever compromised).
