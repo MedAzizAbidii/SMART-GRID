@@ -1,0 +1,168 @@
+{
+  "architecture": "TransformerAutoencoder dim=128 heads=4 layers=3",
+  "data_file": "..\\data\\scenario_test\\donnees_smart_meters.csv",
+  "rows": 28800,
+  "sequences": 28793,
+  "normal_sequences": 27925,
+  "alert_sequences": 868,
+  "label_strategy": "last",
+  "pretrain_epochs_run": 25,
+  "finetune_epochs_run": 2,
+  "threshold": 0.004238154782085263,
+  "threshold_strategy": "f1",
+  "threshold_f1_optimal": 0.004238154782085263,
+  "threshold_f1_optimal_score": 0.5555555555555556,
+  "threshold_conservative_mean_3std": 0.06593967974185944,
+  "threshold_conservative_percentile": 0.0082879438996315,
+  "metrics": {
+    "auc": 0.9435308326697994,
+    "precision": 0.5268595041322314,
+    "recall": 0.5875576036866359,
+    "f1": 0.5555555555555556,
+    "tn": 27467,
+    "fp": 458,
+    "fn": 358,
+    "tp": 510
+  },
+  "training_history": {
+    "pretrain": [
+      {
+        "epoch": 1,
+        "train_loss": 0.3251078766664406,
+        "val_loss": 0.023228459060192108
+      },
+      {
+        "epoch": 2,
+        "train_loss": 0.08022568320803551,
+        "val_loss": 0.01158002857118845
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.05491235128971352,
+        "val_loss": 0.00639111315831542
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.0406464465657004,
+        "val_loss": 0.004536909516900778
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.031266286326933596,
+        "val_loss": 0.003640315495431423
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.02504406101135844,
+        "val_loss": 0.0030268875416368246
+      },
+      {
+        "epoch": 7,
+        "train_loss": 0.02093731257127784,
+        "val_loss": 0.0025826352648437023
+      },
+      {
+        "epoch": 8,
+        "train_loss": 0.018192560838981988,
+        "val_loss": 0.002517521381378174
+      },
+      {
+        "epoch": 9,
+        "train_loss": 0.01650468517661931,
+        "val_loss": 0.002327932044863701
+      },
+      {
+        "epoch": 10,
+        "train_loss": 0.014886695017385876,
+        "val_loss": 0.002167893573641777
+      },
+      {
+        "epoch": 11,
+        "train_loss": 0.013686748920792918,
+        "val_loss": 0.002058912068605423
+      },
+      {
+        "epoch": 12,
+        "train_loss": 0.012665277080409787,
+        "val_loss": 0.0019048004178330302
+      },
+      {
+        "epoch": 13,
+        "train_loss": 0.011853594928413182,
+        "val_loss": 0.001917529501952231
+      },
+      {
+        "epoch": 14,
+        "train_loss": 0.0113854755742285,
+        "val_loss": 0.0019800204318016768
+      },
+      {
+        "epoch": 15,
+        "train_loss": 0.010675419888697241,
+        "val_loss": 0.0016952132573351264
+      },
+      {
+        "epoch": 16,
+        "train_loss": 0.010069910337600478,
+        "val_loss": 0.001635908498428762
+      },
+      {
+        "epoch": 17,
+        "train_loss": 0.009686509014475993,
+        "val_loss": 0.0017357318429276347
+      },
+      {
+        "epoch": 18,
+        "train_loss": 0.009315002583673964,
+        "val_loss": 0.0016778138233348727
+      },
+      {
+        "epoch": 19,
+        "train_loss": 0.009630129089285224,
+        "val_loss": 0.0016194318886846304
+      },
+      {
+        "epoch": 20,
+        "train_loss": 0.008616089279447483,
+        "val_loss": 0.0014041491085663438
+      },
+      {
+        "epoch": 21,
+        "train_loss": 0.008230163935308359,
+        "val_loss": 0.0015024039894342422
+      },
+      {
+        "epoch": 22,
+        "train_loss": 0.00818991285531386,
+        "val_loss": 0.001645397045649588
+      },
+      {
+        "epoch": 23,
+        "train_loss": 0.007982330524293372,
+        "val_loss": 0.0014722375199198723
+      },
+      {
+        "epoch": 24,
+        "train_loss": 0.00780954518953917,
+        "val_loss": 0.0012993061682209373
+      },
+      {
+        "epoch": 25,
+        "train_loss": 0.007157525840382191,
+        "val_loss": 0.0013927328400313854
+      }
+    ],
+    "finetune": [
+      {
+        "epoch": 1,
+        "train_loss": 0.006638360703772562,
+        "val_loss": 0.0016237120144069195
+      },
+      {
+        "epoch": 2,
+        "train_loss": 0.006392738204649521,
+        "val_loss": 0.004733496345579624
+      }
+    ]
+  }
+}

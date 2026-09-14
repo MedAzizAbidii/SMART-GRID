@@ -15,10 +15,33 @@ venv64/
 .env
 
 # Data and outputs
-data/
+# Exception: the small "fast" datasets are bundled into the backend Docker
+# image (see Dockerfile.backend + .dockerignore) so the container boots
+# standalone with no external volume mount — they must reach the git repo
+# for Render/CI to build from, not just exist on disk locally.
+# NOTE: "data/*" (not "data/") is required — a trailing-slash-only pattern
+# excludes the directory itself and Git then never descends into it to
+# evaluate the "!" negations below, silently keeping everything ignored.
+data/*
+!data/clean/
+!data/clean/smartgrid_clean_fast.csv
+!data/attacks/
+!data/attacks/attacks_fast.csv
 images/
 SMARTGRID_PRIVATE/
-outputs/
+outputs/*
+# Exception: the two model directories the backend actually loads at runtime
+# (RealtimeDetector's ensemble — see ml_pipeline/realtime_detector.py's
+# get_detector()) must reach git so Docker/Render can COPY them; every other
+# outputs/* subfolder is training/research-only artifacts we don't ship.
+!outputs/early_stopping_final/
+outputs/early_stopping_final/*
+!outputs/early_stopping_final/*.pt
+!outputs/early_stopping_final/*.json
+!outputs/test_run_now/
+outputs/test_run_now/*
+!outputs/test_run_now/*.pt
+!outputs/test_run_now/*.json
 data_generation/assetes/
 *.log
 *.out.log
