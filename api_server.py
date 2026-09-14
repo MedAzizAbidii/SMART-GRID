@@ -1778,14 +1778,42 @@ async def detect_anomaly(reading: SmartMeterReading) -> Dict[str, Any]:
     return _finalize_detection(reading, raw, result)
 
 
+def _meter_id_to_bus_id(meter_id: str) -> int:
+    """Extract a valid smart_meters.bus_id (1-14) from a meter_id string.
+
+    /api/detect accepts an arbitrary meter_id (e.g. "SM_0007", "SM_ALERT_TEST",
+    a demo session's "SM_0001") but the alerts table's bus_id is a NOT NULL
+    foreign key into the 14-row smart_meters table seeded by
+    init_data_production.sql — any digits in the meter_id are used if they
+    fall in range, and anything else (a non-numeric suffix, an out-of-range
+    demo/test id) falls back to bus 1 rather than raising and dropping the
+    alert entirely.
+    """
+    import re
+    match = re.search(r"(\d+)", meter_id)
+    if match:
+        candidate = int(match.group(1))
+        if 1 <= candidate <= 14:
+            return candidate
+    return 1
+
+
 def _finalize_detection(reading: "SmartMeterReading", raw: dict, result: dict) -> dict:
     """Shared post-processing for BOTH detection paths (in-process detector
     and remote inference-service proxy): structured logging + blockchain
-    notarization. Keeping this in one place means the two topologies can
-    never silently drift apart in behavior."""
+    notarization + database persistence. Keeping this in one place means the
+    two topologies can never silently drift apart in behavior."""
     _loggers["predictions"].info("reading scored", extra=log_extra(
         meter_id=reading.meter_id, is_anomaly=result.get("is_anomaly", False),
         anomaly_score=result.get("anomaly_score"), threshold=result.get("threshold")))
+
+    if result.get("is_anomaly") and not result.get("deduplicated"):
+        _save_alert_to_db_async(
+            bus_id=_meter_id_to_bus_id(reading.meter_id),
+            attack_type=result.get("attack_type", "unknown"),
+            confidence=float(result.get("confidence", 0.0)),
+            description=f"{result.get('attack_type', 'unknown').upper()} detected on {reading.meter_id}",
+        )
 
     if result.get("is_anomaly") and not result.get("deduplicated") and _live_ledger is not None:
         _loggers["attacks"].warning("anomaly detected", extra=log_extra(
