@@ -32,8 +32,22 @@ PINATA_PIN_JSON_URL = "https://api.pinata.cloud/pinning/pinJSONToIPFS"
 PINATA_GATEWAY_URL = "https://gateway.pinata.cloud/ipfs/"
 
 
+def _get_jwt() -> str | None:
+    """Read PINATA_JWT with defensive stripping.
+
+    A trailing newline pasted into a dashboard env-var text field (Render's
+    included — reproduced live: "Bearer eyJ...ZUo\\n") is invisible in the
+    UI but makes `requests` reject the Authorization header outright
+    ("Invalid ... return character(s) in header value"). Stripping here
+    means a real-world paste mistake in an env var editor doesn't need a
+    second round-trip through that editor to fix.
+    """
+    jwt = os.environ.get("PINATA_JWT")
+    return jwt.strip() if jwt else None
+
+
 def pinata_enabled() -> bool:
-    return bool(os.environ.get("PINATA_JWT"))
+    return bool(_get_jwt())
 
 
 def fetch_from_gateway(cid: str) -> dict[str, Any]:
@@ -57,7 +71,7 @@ def pin_block_json(block_dict: dict[str, Any]) -> dict[str, Any]:
     failure — callers (api_server.py) wrap this so a Pinata outage never
     blocks the local PoA ledger itself from working.
     """
-    jwt = os.environ.get("PINATA_JWT")
+    jwt = _get_jwt()
     if not jwt:
         raise RuntimeError("PINATA_JWT not configured — pinata_enabled() should be checked first")
 
