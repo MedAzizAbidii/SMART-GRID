@@ -69,6 +69,14 @@ export const getBlockchainStatus = () => request("/api/blockchain/status");
 // Disabled by default; returns { enabled: false, reason } until the operator
 // sets SGRID_ONCHAIN_ENABLED=1 with a funded deployer wallet.
 export const getOnchainStatus = () => request("/api/blockchain/onchain/status");
+// IPFS/Pinata bridge — see production/blockchain/pinata_bridge.py. Off by
+// default (no PINATA_JWT configured); pinning is manual (per-block), not
+// automatic on every detection, so this only returns real data for blocks
+// someone has actually pinned.
+export const getPinataStatus = () => request("/api/blockchain/pinata/status");
+export const getBlockchainBlocks = (limit = 10) => request(`/api/blockchain/blocks?limit=${limit}`);
+export const pinBlockToIpfs = (index) => request(`/api/blockchain/blocks/${index}/pin`, { method: "POST" });
+export const verifyBlockOnIpfs = (index) => request(`/api/blockchain/blocks/${index}/verify`);
 
 // ── Simulation (protected; requires auth in production mode) ────────────
 export const simulateAttack = (payload) =>
