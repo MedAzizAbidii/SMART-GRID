@@ -1,0 +1,63 @@
+{
+  "versions": [
+    {
+      "version": "v1",
+      "tag": "v1-any-dim64-layers2",
+      "model_dir": "c:\\Users\\Batikha\\Desktop\\SMART GRID\\smartgrid_simulation\\outputs\\improved_model",
+      "metrics": {
+        "accuracy": 0.7156320735304205,
+        "precision": 0.7156320735304205,
+        "recall": 1.0,
+        "f1_score": 0.8342488865433668,
+        "roc_auc": 0.9796129670304575
+      },
+      "config": {
+        "sequence_length": 72895,
+        "from_report": true
+      },
+      "registered_at": "2026-06-27T10:32:08.059915+00:00",
+      "status": "retired"
+    },
+    {
+      "version": "v2",
+      "tag": "v2-any-dim64-layers2-precisionF1",
+      "model_dir": "c:\\Users\\Batikha\\Desktop\\SMART GRID\\smartgrid_simulation\\outputs\\test_run_now",
+      "metrics": {
+        "accuracy": 0.8806633471873585,
+        "precision": 0.9984221796461175,
+        "recall": 0.7542784163473819,
+        "f1_score": 0.8593462023474634,
+        "roc_auc": 0.9795084367994207
+      },
+      "config": {
+        "sequence_length": 72903,
+        "from_report": true
+      },
+      "registered_at": "2026-06-27T10:32:08.061910+00:00",
+      "status": "retired"
+    },
+    {
+      "version": "v3",
+      "tag": "v3-dim128-layers3-early-stop",
+      "model_dir": "c:\\Users\\Batikha\\Desktop\\SMART GRID\\smartgrid_simulation\\outputs\\early_stopping_final",
+      "metrics": {
+        "accuracy": 0.7338106799445839,
+        "precision": 0.9974856999182853,
+        "recall": 0.4503760465446289,
+        "f1_score": 0.6205615516971688,
+        "roc_auc": 0.9878469263526937
+      },
+      "config": {
+        "sequence_length": 8,
+        "model_dim": 128,
+        "layers": 3,
+        "early_stopping": true,
+        "patience": 10
+      },
+      "registered_at": "2026-06-27T10:40:59.642042+00:00",
+      "status": "champion"
+    }
+  ],
+  "champion_version": "v3",
+  "last_updated": "2026-06-27T10:40:59.642042+00:00"
+}

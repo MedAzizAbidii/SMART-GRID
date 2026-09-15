@@ -34,6 +34,11 @@ outputs/*
 # (RealtimeDetector's ensemble — see ml_pipeline/realtime_detector.py's
 # get_detector()) must reach git so Docker/Render can COPY them; every other
 # outputs/* subfolder is training/research-only artifacts we don't ship.
+# model_registry.json is the champion/version metadata /api/model/status
+# reads (ml_pipeline/model_registry.py) — without it in the image, the
+# dashboard's "Champion Model Metrics" card silently goes blank in
+# production even though the model itself loads and works fine.
+!outputs/model_registry.json
 !outputs/early_stopping_final/
 outputs/early_stopping_final/*
 !outputs/early_stopping_final/*.pt

@@ -43,6 +43,11 @@ COPY dashboard/ ./dashboard/
 COPY production/ ./production/
 COPY outputs/early_stopping_final/ ./outputs/early_stopping_final/
 COPY outputs/test_run_now/ ./outputs/test_run_now/
+# Champion/version metadata (ml_pipeline/model_registry.py) that
+# /api/model/status reads for the dashboard's "Champion Model Metrics"
+# card — omitting it doesn't break inference, but silently blanks that
+# card in production.
+COPY outputs/model_registry.json ./outputs/model_registry.json
 # DataEngine.__init__() hard-fails at import time (before uvicorn can even
 # start) if neither the clean nor attack dataset is present — bundling the
 # small "fast" variants (~2.2MB total) means the image boots standalone on
