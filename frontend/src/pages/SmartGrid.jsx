@@ -22,7 +22,7 @@ export default function SmartGrid() {
           </Badge>
         </div>
         <p className="text-secondary type-small" style={{ marginTop: 4 }}>
-          Real-time electrical state from the 14-bus grid simulator (api_server.py `/api/grid/all`)
+          Real-time electrical state from the 14-smart-meter grid simulator (api_server.py `/api/grid/all`)
         </p>
       </div>
 
@@ -34,13 +34,13 @@ export default function SmartGrid() {
         )}
       </Card>
 
-      <Card title="All Buses" subtitle={`${buses.length} monitored`}>
+      <Card title="All Smart Meters" subtitle={`${buses.length} monitored`}>
         <DataTable
-          emptyMessage="No bus data — grid simulator may not be running"
+          emptyMessage="No smart meter data — grid simulator may not be running"
           rows={buses}
           keyField="bus_id"
           columns={[
-            { key: "bus_id", header: "Bus", className: "mono emphasis", render: (r) => `SM_${String(r.bus_id).padStart(2, "0")}` },
+            { key: "bus_id", header: "Smart Meter", className: "mono emphasis", render: (r) => `SM_${String(r.bus_id).padStart(2, "0")}` },
             { key: "consumer_type", header: "Type", render: (r) => <Badge tone="neutral">{r.consumer_type}</Badge> },
             { key: "voltage", header: "Voltage (pu)", className: "mono", render: (r) => r.voltage?.toFixed(4) },
             { key: "current", header: "Current (A)", className: "mono", render: (r) => r.current?.toFixed(2) },

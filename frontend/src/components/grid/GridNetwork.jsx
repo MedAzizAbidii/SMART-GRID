@@ -85,7 +85,7 @@ export function GridNetwork({ buses = [], height = 340, onSelect, selectedId, sh
       )}
 
       <div className="grid-network-stats">
-        <div><span className="grid-network-stats-label">Buses</span><span className="grid-network-stats-value">{filtered.length}</span></div>
+        <div><span className="grid-network-stats-label">Smart Meters</span><span className="grid-network-stats-value">{filtered.length}</span></div>
         <div><span className="grid-network-stats-label">Load</span><span className="grid-network-stats-value">{totalLoad.toFixed(1)} kW</span></div>
         <div><span className="grid-network-stats-label">Alerts</span><span className="grid-network-stats-value" style={{ color: alertCount ? "var(--color-critical)" : undefined }}>{alertCount}</span></div>
       </div>

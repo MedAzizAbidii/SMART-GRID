@@ -104,7 +104,7 @@ export default function Dashboard() {
           )}
         </div>
         <p className="text-secondary type-small" style={{ marginTop: 4 }}>
-          Region: Alger-Est · {buses.length || 14} monitored buses · Transformer Autoencoder ensemble active
+          Region: Alger-Est · {buses.length || 14} monitored smart meters · Transformer Autoencoder ensemble active
         </p>
       </div>
 
@@ -151,7 +151,7 @@ export default function Dashboard() {
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <Card title="Load Distribution" subtitle="By consumer type" className="hero">
             {loadMix.length === 0 ? (
-              <div className="empty-state"><div className="empty-state-title">No bus data yet</div></div>
+              <div className="empty-state"><div className="empty-state-title">No smart meter data yet</div></div>
             ) : (
               <DonutRing segments={loadMix} size={156} thickness={17} centerLabel={`${totalLoad.toFixed(0)}`} centerSublabel="kW total" />
             )}

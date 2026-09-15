@@ -53,7 +53,7 @@ class AiDetectionView extends StatelessWidget {
                         const Text('Live Detection Feed', style: TextStyle(
                             color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
                         const SizedBox(height: 4),
-                        const Text('Streams real bus-1 readings every 1.5s to build a live sequence buffer',
+                        const Text('Streams real smart meter 1 readings every 1.5s to build a live sequence buffer',
                             style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
                       ],
                     ),

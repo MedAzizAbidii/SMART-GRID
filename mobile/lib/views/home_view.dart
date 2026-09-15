@@ -89,7 +89,7 @@ class HomeView extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(vm.gridOk ? 'All systems normal' : '${vm.grid?.attacked.length ?? 0} bus(es) under attack',
+                                Text(vm.gridOk ? 'All systems normal' : '${vm.grid?.attacked.length ?? 0} smart meter(s) under attack',
                                     style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
                               ],
                             ),

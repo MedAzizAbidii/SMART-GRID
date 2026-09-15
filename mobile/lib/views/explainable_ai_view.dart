@@ -35,7 +35,7 @@ class ExplainableAiView extends StatelessWidget {
               child: Row(
                 children: [
                   const Expanded(
-                    child: Text('Runs 9 consecutive readings from live bus 1, then explains the final prediction.',
+                    child: Text('Runs 9 consecutive readings from live smart meter 1, then explains the final prediction.',
                         style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                   ),
                   const SizedBox(width: 10),

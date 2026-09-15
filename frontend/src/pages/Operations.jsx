@@ -58,14 +58,14 @@ export default function Operations({ page }) {
   const metrics = page === "blockchain"
     ? [["Ledger blocks", chain.data?.blocks ?? "—", Blocks, "info"], ["Ledger status", chain.data?.valid ? "Valid" : "Checking", CheckCircle2, chain.data?.valid ? "success" : "warning"], ["Active validators", chain.data?.validators?.length ?? 4, Users, "primary"], ["Protected events", alertRows.length, ShieldAlert, "info"]]
     : page === "performance"
-      ? [["CPU usage", health.data?.resources?.cpu_percent?.toFixed(0) ?? "—", Cpu, "primary"], ["Memory usage", health.data?.resources?.memory_percent?.toFixed(0) ?? "—", Activity, "info"], ["Model latency", model.data?.detector?.avg_latency_ms?.toFixed(1) ?? "—", Zap, "success"], ["Grid buses", buses.length, Gauge, "primary"]]
+      ? [["CPU usage", health.data?.resources?.cpu_percent?.toFixed(0) ?? "—", Cpu, "primary"], ["Memory usage", health.data?.resources?.memory_percent?.toFixed(0) ?? "—", Activity, "info"], ["Model latency", model.data?.detector?.avg_latency_ms?.toFixed(1) ?? "—", Zap, "success"], ["Smart meters", buses.length, Gauge, "primary"]]
       : page === "security"
         ? [["Active incidents", activeAttacks.length, ShieldAlert, activeAttacks.length ? "critical" : "success"], ["Open alerts", alerts.data?.count ?? "—", BellRing, "warning"], ["Detection engine", model.data?.detector?.loaded ? "Online" : "Offline", Cpu, model.data?.detector?.loaded ? "success" : "critical"], ["Protected assets", buses.length, Gauge, "info"]]
         : page === "theft"
           ? [["Flagged meters", activeAttacks.length, ReceiptText, activeAttacks.length ? "warning" : "success"], ["Fleet coverage", buses.length, Gauge, "primary"], ["Model confidence", model.data?.registry?.champion_metrics?.roc_auc ? `${(model.data.registry.champion_metrics.roc_auc * 100).toFixed(1)}%` : "—", ShieldAlert, "success"], ["Reviewed events", alertRows.length, CheckCircle2, "info"]]
           : page === "reports"
             ? [["Available reports", 4, FileText, "primary"], ["Events logged", alertRows.length, BellRing, "warning"], ["Ledger blocks", chain.data?.blocks ?? "—", Blocks, "info"], ["Grid data points", buses.length, Activity, "success"]]
-            : [["Monitored buses", buses.length, Gauge, "primary"], ["Current load", `${buses.reduce((sum, bus) => sum + (bus.consumption || 0), 0).toFixed(1)} kW`, Zap, "info"], ["Open alerts", alerts.data?.count ?? "—", BellRing, "warning"], ["Grid health", grid.error ? "Offline" : "Nominal", CheckCircle2, grid.error ? "critical" : "success"]];
+            : [["Monitored smart meters", buses.length, Gauge, "primary"], ["Current load", `${buses.reduce((sum, bus) => sum + (bus.consumption || 0), 0).toFixed(1)} kW`, Zap, "info"], ["Open alerts", alerts.data?.count ?? "—", BellRing, "warning"], ["Grid health", grid.error ? "Offline" : "Nominal", CheckCircle2, grid.error ? "critical" : "success"]];
 
   return (
     <div>
