@@ -44,8 +44,15 @@ export const getAlerts = () => request("/api/alerts");
 // and scores it via /api/detect internally. Used by the AI Detection and
 // Explainable AI "live feed" buttons instead of feeding them /api/grid/all's
 // unrelated synthetic engine, which produced consistent false positives.
-export const getRealisticDemoReading = (meterIdx = 1) =>
-  request(`/api/demo/realistic-reading?meter_idx=${meterIdx}`, { method: "POST" });
+// attackType: optional, one of smart_meters_simulator.ATTACK_TYPES (e.g.
+// "Surcharge") to inject into this single reading — the detector only
+// computes XAI attribution (top_features) when is_anomaly is true, so
+// Explainable AI's "Run Explanation" needs this to have anything to show.
+export const getRealisticDemoReading = (meterIdx = 1, attackType = null) =>
+  request(
+    `/api/demo/realistic-reading?meter_idx=${meterIdx}${attackType ? `&attack_type=${encodeURIComponent(attackType)}` : ""}`,
+    { method: "POST" }
+  );
 
 // ── Grid ──────────────────────────────────────────────────────────────────
 export const getGridAll = () => request("/api/grid/all");

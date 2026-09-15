@@ -138,7 +138,10 @@ try:
     _sim_root = str(_Path(__file__).resolve().parent)
     if _sim_root not in _sys2.path:
         _sys2.path.insert(0, _sim_root)
-    from smart_meters_simulator import _make_row as _sim_make_row, _ZONE_OF as _SIM_ZONE_OF
+    from smart_meters_simulator import (
+        _make_row as _sim_make_row, _ZONE_OF as _SIM_ZONE_OF,
+        _inject as _sim_inject, ATTACK_TYPES as _SIM_ATTACK_TYPES,
+    )
     _DEMO_SIM_AVAILABLE = True
 except ImportError:
     _DEMO_SIM_AVAILABLE = False
@@ -1859,7 +1862,19 @@ _demo_sessions: dict[str, dict[str, Any]] = {}
 
 
 @app.post("/api/demo/realistic-reading")
-async def demo_realistic_reading(meter_idx: int = Query(default=1, ge=1, le=50)) -> Dict[str, Any]:
+async def demo_realistic_reading(
+    meter_idx: int = Query(default=1, ge=1, le=50),
+    attack_type: str | None = Query(
+        default=None,
+        description="Optional: one of smart_meters_simulator.ATTACK_TYPES "
+                    "(e.g. 'Surcharge', 'Pic soudain') to inject into this "
+                    "single reading instead of generating a normal one — "
+                    "lets the Explainable AI page's Run Explanation button "
+                    "produce a real anomaly with top_features populated, "
+                    "since the detector only computes XAI attribution when "
+                    "is_anomaly is true.",
+    ),
+) -> Dict[str, Any]:
     """Generate and score one realistic reading for a demo meter.
 
     Call this repeatedly (e.g. every 1.5s) to build a live sequence for the
@@ -1872,6 +1887,11 @@ async def demo_realistic_reading(meter_idx: int = Query(default=1, ge=1, le=50))
         return JSONResponse(status_code=503, content={
             "error": "demo_simulator_unavailable",
             "detail": "smart_meters_simulator.py could not be imported.",
+        })
+    if attack_type is not None and attack_type not in _SIM_ATTACK_TYPES:
+        return JSONResponse(status_code=422, content={
+            "error": "invalid_attack_type",
+            "detail": f"attack_type must be one of {_SIM_ATTACK_TYPES}",
         })
 
     import numpy as _np
@@ -1895,6 +1915,8 @@ async def demo_realistic_reading(meter_idx: int = Query(default=1, ge=1, le=50))
         _demo_sessions[key] = session
 
     row = _sim_make_row(meter_idx, session["ts"], session["rng"])
+    if attack_type is not None:
+        row = _sim_inject(attack_type, row, session["rng"])
     session["ts"] = session["ts"] + _td(minutes=2)
 
     reading = SmartMeterReading(

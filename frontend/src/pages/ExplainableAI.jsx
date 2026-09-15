@@ -31,9 +31,14 @@ export default function ExplainableAI() {
     setError(null);
     try {
       let res;
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < 8; i++) {
         res = await getRealisticDemoReading(DEMO_METER_IDX);
       }
+      // Final reading carries an injected attack — the detector only runs
+      // XAI attribution (top_features) when is_anomaly is true, so a page
+      // whose whole purpose is showing that attribution needs a real
+      // anomaly to explain, not another normal reading.
+      res = await getRealisticDemoReading(DEMO_METER_IDX, "Surcharge");
       setResult(res);
     } catch {
       setError("Backend unreachable — check the API is running.");
