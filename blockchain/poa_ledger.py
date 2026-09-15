@@ -398,6 +398,14 @@ class ProofOfAuthorityLedger:
         joined_hashes = "|".join(str(record["row_hash"]) for record in transactions)
         return _sha256_text(joined_hashes)
 
+    def recompute_block_hash(self, block: PoABlock) -> str:
+        """Public entry point for _hash_block_payload — used by the IPFS
+        integrity-verification endpoint (/api/blockchain/blocks/{i}/verify)
+        to recompute a block's hash from content pinned on IPFS and compare
+        it against the hash recorded when the block was first sealed,
+        without exposing the private hashing internals directly."""
+        return self._hash_block_payload(block)
+
     def _hash_block_payload(self, block: PoABlock) -> str:
         payload = {
             "index": block.index,

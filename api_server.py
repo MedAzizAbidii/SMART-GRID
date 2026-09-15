@@ -112,7 +112,7 @@ except ImportError:
 try:
     import sys as _sys
     _sys.path.insert(0, str(__file__).replace("api_server.py", ""))
-    from blockchain.poa_ledger import ProofOfAuthorityLedger, AuthorityNode
+    from blockchain.poa_ledger import ProofOfAuthorityLedger, AuthorityNode, PoABlock
     from production.security.authority_keys import load_or_generate_authority_keys
     _BLOCKCHAIN_AVAILABLE = True
 except ImportError:
@@ -2062,6 +2062,169 @@ async def blockchain_blocks(limit: int = Query(default=10, ge=1, le=200)) -> Dic
         "total_blocks": len(_live_ledger.chain),
         "returned": len(blocks),
         "blocks": [block.to_dict() for block in blocks],
+    }
+
+
+@app.get("/api/blockchain/pinata/status")
+async def pinata_status() -> Dict[str, Any]:
+    """Whether IPFS pinning via Pinata is configured (PINATA_JWT set).
+
+    Off by default, additive — see production/blockchain/pinata_bridge.py.
+    """
+    try:
+        from production.blockchain.pinata_bridge import pinata_enabled
+    except ImportError:
+        return {"available": False, "reason": "pinata_bridge module not loaded"}
+    return {"available": True, "enabled": pinata_enabled()}
+
+
+@app.post("/api/blockchain/blocks/{index}/pin")
+async def pin_block_to_ipfs(index: int) -> Dict[str, Any]:
+    """Pin one PoA block's exact JSON content to IPFS via Pinata.
+
+    On-demand rather than automatic on every block: pinning every
+    detection would add Pinata-round-trip latency to the hot detection
+    path and burn API quota for blocks nobody ever asks to verify off-
+    chain. Returns the CID and a public gateway URL — anyone can fetch
+    that exact JSON from any IPFS node using only the CID, independent
+    of this backend staying up.
+    """
+    try:
+        from production.blockchain.pinata_bridge import pinata_enabled, pin_block_json
+    except ImportError:
+        return JSONResponse(status_code=503, content={
+            "error": "pinata_bridge_unavailable",
+            "detail": "production/blockchain/pinata_bridge.py could not be imported.",
+        })
+    if not pinata_enabled():
+        return JSONResponse(status_code=503, content={
+            "error": "pinata_not_configured",
+            "detail": "Set PINATA_JWT to enable IPFS pinning.",
+        })
+    if not _BLOCKCHAIN_AVAILABLE or _live_ledger is None:
+        return JSONResponse(status_code=503, content={
+            "error": "blockchain_unavailable", "detail": "blockchain module not loaded",
+        })
+    if index < 0 or index >= len(_live_ledger.chain):
+        return JSONResponse(status_code=404, content={
+            "error": "block_not_found", "detail": f"No block at index {index}",
+        })
+    block = _live_ledger.chain[index]
+    try:
+        result = await asyncio.to_thread(pin_block_json, block.to_dict())
+    except Exception as exc:
+        _loggers["blockchain"].error("pinata pin failed", extra=log_extra(block_index=index, error=str(exc)))
+        return JSONResponse(status_code=502, content={
+            "error": "pinata_pin_failed", "detail": str(exc),
+        })
+    _loggers["blockchain"].info("block pinned to ipfs", extra=log_extra(block_index=index, cid=result["cid"]))
+
+    # Persist the link between this block's on-chain-hashable content and
+    # its IPFS location. This is the actual bridge between the two layers:
+    # neither poa_ledger.py nor onchain_bridge.py ever pass a CID to each
+    # other or to the AnomalyRegistry contract (which has no ipfsCid field
+    # — redeploying it was out of scope here), so without this row there
+    # would be no durable, queryable link from a block_hash to where its
+    # full content lives on IPFS. Any viewer can take block_hash from here,
+    # fetch the CID's content from any IPFS gateway, and recompute its
+    # SHA-256 to confirm it matches block_hash — that's the actual
+    # integrity check this project supports today.
+    if not _db_is_known_down():
+        try:
+            from datetime import datetime as _dt_now
+            db_gen = get_db()
+            db = next(db_gen)
+            try:
+                DatabaseService.create_blockchain_entry(
+                    db=db,
+                    block_number=block.index,
+                    timestamp=_dt_now.utcnow(),
+                    data={"ipfs_cid": result["cid"], "gateway_url": result["gateway_url"],
+                          "block_hash": block.block_hash, "source": "pinata"},
+                    hash_val=block.block_hash,
+                    previous_hash=block.previous_hash,
+                    is_verified=True,
+                )
+            finally:
+                db_gen.close()
+        except Exception as exc:
+            _mark_db_down()
+            _loggers["app"].warning(f"Failed to persist IPFS pin record: {exc}")
+
+    return {"block_index": index, "block_hash": block.block_hash, **result}
+
+
+@app.get("/api/blockchain/blocks/{index}/verify")
+async def verify_block_on_ipfs(index: int) -> Dict[str, Any]:
+    """Integrity check: fetch a pinned block's JSON back from a public IPFS
+    gateway, recompute its hash with the same method used to seal it
+    locally, and compare against the hash recorded at pin time.
+
+    This is the actual proof this project supports today that IPFS content
+    has not been tampered with — it does NOT touch a smart contract (no
+    on-chain field currently holds a CID; see the forensic audit), but it
+    is independently verifiable by anyone with the CID and no relationship
+    to this backend, which is the property that matters.
+    """
+    try:
+        from production.blockchain.pinata_bridge import fetch_from_gateway
+    except ImportError:
+        return JSONResponse(status_code=503, content={
+            "error": "pinata_bridge_unavailable",
+            "detail": "production/blockchain/pinata_bridge.py could not be imported.",
+        })
+    if not _BLOCKCHAIN_AVAILABLE or _live_ledger is None:
+        return JSONResponse(status_code=503, content={
+            "error": "blockchain_unavailable", "detail": "blockchain module not loaded",
+        })
+
+    entry = None
+    if not _db_is_known_down():
+        try:
+            db_gen = get_db()
+            db = next(db_gen)
+            try:
+                for row in DatabaseService.get_blockchain_entries(db, limit=200):
+                    if row.block_number == index:
+                        entry = row
+                        break
+            finally:
+                db_gen.close()
+        except Exception as exc:
+            _mark_db_down()
+            _loggers["app"].warning(f"Failed to read IPFS pin record: {exc}")
+
+    if entry is None or not isinstance(entry.data, dict) or "ipfs_cid" not in entry.data:
+        return JSONResponse(status_code=404, content={
+            "error": "no_pin_record",
+            "detail": f"Block {index} has not been pinned to IPFS yet — "
+                      f"call POST /api/blockchain/blocks/{index}/pin first.",
+        })
+
+    cid = entry.data["ipfs_cid"]
+    try:
+        fetched = await asyncio.to_thread(fetch_from_gateway, cid)
+    except Exception as exc:
+        return JSONResponse(status_code=502, content={
+            "error": "ipfs_fetch_failed", "detail": str(exc), "cid": cid,
+        })
+
+    try:
+        reconstructed_block = PoABlock(**fetched)
+        recomputed_hash = _live_ledger.recompute_block_hash(reconstructed_block)
+    except Exception as exc:
+        return JSONResponse(status_code=502, content={
+            "error": "reconstruction_failed", "detail": str(exc), "cid": cid,
+        })
+
+    stored_hash = entry.hash
+    match = recomputed_hash == stored_hash
+    return {
+        "block_index": index,
+        "cid": cid,
+        "stored_hash": stored_hash,
+        "recomputed_hash": recomputed_hash,
+        "integrity_verified": match,
     }
 
 
