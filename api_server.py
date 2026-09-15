@@ -2021,6 +2021,28 @@ async def blockchain_status() -> Dict[str, Any]:
     }
 
 
+@app.get("/api/blockchain/blocks")
+async def blockchain_blocks(limit: int = Query(default=10, ge=1, le=200)) -> Dict[str, Any]:
+    """Return the most recent blocks in the local PoA ledger, newest first.
+
+    Exists because /api/blockchain/status only ever reported a summary
+    (block count, validity) with no way to inspect an actual block's
+    content — useful for a demo where "show me a real block" is a natural
+    question. Each block's own signature/hash fields are included so the
+    same tamper-evidence /api/blockchain/status validates can be inspected
+    per-block rather than only in aggregate.
+    """
+    if not _BLOCKCHAIN_AVAILABLE or _live_ledger is None:
+        return {"available": False, "reason": "blockchain module not loaded"}
+    blocks = list(reversed(_live_ledger.chain))[:limit]
+    return {
+        "available": True,
+        "total_blocks": len(_live_ledger.chain),
+        "returned": len(blocks),
+        "blocks": [block.to_dict() for block in blocks],
+    }
+
+
 @app.get("/api/blockchain/onchain/status")
 async def onchain_status() -> Dict[str, Any]:
     """Real on-chain layer status (production/blockchain/onchain_bridge.py).
